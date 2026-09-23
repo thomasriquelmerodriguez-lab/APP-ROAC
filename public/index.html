@@ -691,7 +691,7 @@ body.read-only-mode .note-readonly{
   </div>
 </div>
 
-<footer>Control Mensual de Alimentación · Render + API Node.js + PostgreSQL · v36.3</footer>
+<footer>Control Mensual de Alimentación · Render + API Node.js + PostgreSQL.</footer>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1185,6 +1185,7 @@ function updateEntry(companyId,day,field,value){
 }
 function kpi(label,value){return `<div class="kpi"><span>${label}</span><strong>${fmt(value)}</strong></div>`}
 function kpiMoney(label,value){return `<div class="kpi"><span>${label}</span><strong>${money(value)}</strong></div>`}
+/* v36.1-resumen5: Mina y Quilmenco muestran solo 5 indicadores */
 function renderKpis(){
   const t=activeCompanyId?totals(activeCompanyId):{
     lunchSystem:0,lunchSheet:0,lunch:0,
@@ -1192,18 +1193,23 @@ function renderKpis(){
     lunchCol:0,dinnerCol:0,services:0,totalAmount:0
   };
 
-  document.getElementById("kpiGrid").innerHTML=splitMode()
-    ?kpi("TOTAL ALMUERZOS",t.lunch)+
+  if(splitMode()){
+    document.getElementById("kpiGrid").innerHTML=
+      kpi("TOTAL ALMUERZOS",t.lunch)+
       kpi("TOTAL CENAS",t.dinner)+
       kpi("TOTAL COLACIONES ALMUERZO",t.lunchCol)+
       kpi("TOTAL COLACIONES CENA",t.dinnerCol)+
-      kpiMoney("TOTAL A PAGAR",t.totalAmount)
-    :kpi("ALMUERZOS",t.lunch)+
-      kpi("COL. ALMUERZO",t.lunchCol)+
-      kpi("CENAS",t.dinner)+
-      kpi("COL. CENA",t.dinnerCol)+
-      kpi("TOTAL SERVICIOS",t.services)+
       kpiMoney("TOTAL A PAGAR",t.totalAmount);
+    return;
+  }
+
+  document.getElementById("kpiGrid").innerHTML=
+    kpi("ALMUERZOS",t.lunch)+
+    kpi("COL. ALMUERZO",t.lunchCol)+
+    kpi("CENAS",t.dinner)+
+    kpi("COL. CENA",t.dinnerCol)+
+    kpi("TOTAL SERVICIOS",t.services)+
+    kpiMoney("TOTAL A PAGAR",t.totalAmount);
 }
 function renderReport(){
   document.getElementById("reportSubtitle").innerHTML=`${escapeHtml(casino().name)} · ${months[activeMonth-1]} ${activeYear}<br><b>Valores aplicados:</b> almuerzo o cena ${money(MEAL_PRICE)} · colación ${money(COLATION_PRICE)}`;
@@ -6381,41 +6387,6 @@ function downloadFinalReportPDF(){
     );
   }
 }
-</script>
-
-
-<script>
-/* v36.3 - resumen final forzado para Mina y Quilmenco */
-const renderKpisAntesV363=renderKpis;
-
-renderKpis=function(){
-  if(typeof flexMode==="function" && flexMode()){
-    return renderKpisAntesV363();
-  }
-
-  if(typeof splitMode==="function" && splitMode()){
-    const t=activeCompanyId
-      ?totals(activeCompanyId)
-      :{
-        lunch:0,
-        dinner:0,
-        lunchCol:0,
-        dinnerCol:0,
-        totalAmount:0
-      };
-
-    document.getElementById("kpiGrid").innerHTML=
-      kpi("TOTAL ALMUERZOS",t.lunch)+
-      kpi("TOTAL CENAS",t.dinner)+
-      kpi("TOTAL COLACIONES ALMUERZO",t.lunchCol)+
-      kpi("TOTAL COLACIONES CENA",t.dinnerCol)+
-      kpiMoney("TOTAL A PAGAR",t.totalAmount);
-
-    return;
-  }
-
-  return renderKpisAntesV363();
-};
 </script>
 
 </body>
