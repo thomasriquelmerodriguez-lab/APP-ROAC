@@ -104,3 +104,33 @@ En Render > Environment agrega:
 
 No necesitas cambiar DATABASE_URL, SESSION_SECRET, ADMIN_USERNAME ni ADMIN_PASSWORD.
 No necesitas modificar ni recrear PostgreSQL.
+
+
+## v36.2 – resumen simplificado en Mina y Quilmenco
+
+Se modificó únicamente el bloque “Resumen de la empresa” para casinos con
+registro Sistema + Planilla (Mina y Quilmenco).
+
+Ahora muestra solo 5 cuadros:
+
+1. Total almuerzos = Almuerzo Sistema + Almuerzo Planilla.
+2. Total cenas = Cena Sistema + Cena Planilla.
+3. Total colaciones almuerzo.
+4. Total colaciones cena.
+5. Total a pagar.
+
+Se eliminaron de ese resumen visual los cuadros:
+- Alm. Sistema.
+- Alm. Planilla.
+- Cena Sistema.
+- Cena Planilla.
+- Total servicios.
+
+No se modificaron:
+- los datos diarios;
+- los cálculos;
+- los reportes;
+- PostgreSQL;
+- los usuarios y permisos;
+- Salamanca;
+- Servicios Especiales.

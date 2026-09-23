@@ -1186,10 +1186,24 @@ function updateEntry(companyId,day,field,value){
 function kpi(label,value){return `<div class="kpi"><span>${label}</span><strong>${fmt(value)}</strong></div>`}
 function kpiMoney(label,value){return `<div class="kpi"><span>${label}</span><strong>${money(value)}</strong></div>`}
 function renderKpis(){
-  const t=activeCompanyId?totals(activeCompanyId):{lunchSystem:0,lunchSheet:0,lunch:0,dinnerSystem:0,dinnerSheet:0,dinner:0,lunchCol:0,dinnerCol:0,services:0};
+  const t=activeCompanyId?totals(activeCompanyId):{
+    lunchSystem:0,lunchSheet:0,lunch:0,
+    dinnerSystem:0,dinnerSheet:0,dinner:0,
+    lunchCol:0,dinnerCol:0,services:0,totalAmount:0
+  };
+
   document.getElementById("kpiGrid").innerHTML=splitMode()
-    ?kpi("ALM. SISTEMA",t.lunchSystem)+kpi("ALM. PLANILLA",t.lunchSheet)+kpi("TOTAL ALMUERZOS",t.lunch)+kpi("CENA SISTEMA",t.dinnerSystem)+kpi("CENA PLANILLA",t.dinnerSheet)+kpi("TOTAL CENAS",t.dinner)+kpi("TOTAL SERVICIOS",t.services)+kpiMoney("TOTAL A PAGAR",t.totalAmount)
-    :kpi("ALMUERZOS",t.lunch)+kpi("COL. ALMUERZO",t.lunchCol)+kpi("CENAS",t.dinner)+kpi("COL. CENA",t.dinnerCol)+kpi("TOTAL SERVICIOS",t.services)+kpiMoney("TOTAL A PAGAR",t.totalAmount)
+    ?kpi("TOTAL ALMUERZOS",t.lunch)+
+      kpi("TOTAL CENAS",t.dinner)+
+      kpi("TOTAL COLACIONES ALMUERZO",t.lunchCol)+
+      kpi("TOTAL COLACIONES CENA",t.dinnerCol)+
+      kpiMoney("TOTAL A PAGAR",t.totalAmount)
+    :kpi("ALMUERZOS",t.lunch)+
+      kpi("COL. ALMUERZO",t.lunchCol)+
+      kpi("CENAS",t.dinner)+
+      kpi("COL. CENA",t.dinnerCol)+
+      kpi("TOTAL SERVICIOS",t.services)+
+      kpiMoney("TOTAL A PAGAR",t.totalAmount);
 }
 function renderReport(){
   document.getElementById("reportSubtitle").innerHTML=`${escapeHtml(casino().name)} · ${months[activeMonth-1]} ${activeYear}<br><b>Valores aplicados:</b> almuerzo o cena ${money(MEAL_PRICE)} · colación ${money(COLATION_PRICE)}`;
