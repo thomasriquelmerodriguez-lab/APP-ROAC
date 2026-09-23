@@ -82,3 +82,29 @@ En **Environment** del Web Service agrega:
 Las contraseñas no deben escribirse dentro de GitHub ni en `public/index.html`.
 
 El servidor también impide por API que los perfiles de solo lectura ejecuten `PUT /api/state`, por lo que el bloqueo no depende únicamente de la interfaz.
+
+
+## Corrección v38
+
+Se corrigió un problema de interfaz de la v37.
+
+La v37 utilizaba un `MutationObserver` para reaplicar continuamente los permisos
+de usuario. Ese observador podía volver a activarse por los mismos cambios de
+interfaz que realizaba la función de permisos, generando un ciclo continuo en
+el navegador.
+
+La v38:
+- elimina ese `MutationObserver`;
+- reaplica los permisos únicamente después de los renders normales de la app;
+- mantiene TRIQUELME como administrador;
+- mantiene CMTV y Mrodriguez como usuarios de solo lectura;
+- mantiene la validación de permisos también en el servidor/API;
+- no requiere cambios en PostgreSQL ni migración de los datos existentes;
+- conserva las mismas variables de entorno configuradas en Render.
+
+
+### Caché de la página principal
+
+La v38 también configura `/` con `Cache-Control: no-store`. Esto evita que,
+después de un nuevo deploy, el navegador siga utilizando durante un tiempo una
+versión anterior de `index.html`.

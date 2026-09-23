@@ -773,7 +773,7 @@ function normalizeRemoteState(){
 }
 
 async function loadRemoteState(){
-  setSaveStatus("Conectando con servidor…");
+  setSaveStatus("Conectando con servidor y base de datos…");
   const response=await fetch(API_STATE_URL,{
     method:"GET",
     credentials:"same-origin",
@@ -6325,16 +6325,22 @@ function applyUserPermissions(){
   const badge=document.getElementById("sessionBadge");
   if(badge){
     const username=currentSession?.username||"Sin sesión";
-    badge.textContent=viewer
+    const badgeText=viewer
       ?`${username} · Solo lectura`
       :currentSession?.role==="admin"
         ?`${username} · Administrador`
         :username;
+    if(badge.textContent!==badgeText)badge.textContent=badgeText;
     badge.classList.toggle("viewer",viewer);
   }
 
   const notice=document.getElementById("viewerNotice");
-  if(notice)notice.style.display=viewer?"block":"none";
+  if(notice){
+    const wantedDisplay=viewer?"block":"none";
+    if(notice.style.display!==wantedDisplay){
+      notice.style.display=wantedDisplay;
+    }
+  }
 
   const disableSelectors=[
     "#casinoName",
@@ -6405,23 +6411,17 @@ document.addEventListener("change",event=>{
     event.preventDefault();
     event.stopImmediatePropagation();
     showToast("Usuario en modo solo lectura");
-    renderAll();
     applyUserPermissions();
   }
 },true);
 
-/* Reaplica permisos cuando las tablas dinámicas se vuelven a renderizar. */
-const permissionObserver=new MutationObserver(()=>{
-  applyUserPermissions();
-});
-permissionObserver.observe(document.body,{childList:true,subtree:true});
-
-["renderAll","renderDaily","renderCompanies","renderFlexConfig","applyReportLockUI"]
+["renderAll","renderDaily","renderCompanies","renderFlexConfig","applyReportLockUI","renderTabs"]
   .forEach(name=>{
     const original=window[name];
     if(typeof original!=="function" || original.__permissionWrapped)return;
     const wrapped=function(...args){
       const result=original.apply(this,args);
+      /* Se ejecuta una sola vez después del render, sin MutationObserver. */
       applyUserPermissions();
       return result;
     };

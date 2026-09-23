@@ -388,14 +388,16 @@ app.put("/api/state", requireEditor, async (req, res) => {
   }
 });
 
-app.use(express.static(path.join(__dirname, "public"), {
-  etag: true,
-  maxAge: NODE_ENV === "production" ? "1h" : 0,
-}));
-
 app.get("/", (_req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+
+app.use(express.static(path.join(__dirname, "public"), {
+  etag: true,
+  index: false,
+  maxAge: NODE_ENV === "production" ? "1h" : 0,
+}));
 
 async function main() {
   await ensureSchema();
