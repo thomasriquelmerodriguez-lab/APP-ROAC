@@ -422,27 +422,35 @@ body.period-locked .company-item{cursor:default}
 .login-error{min-height:18px;color:#a61b1b;font-size:12px;font-weight:700}
 
 
-.session-badge{
-  padding:6px 10px;border-radius:18px;font-size:12px;font-weight:900;
-  background:#edf3f7;color:#173f5f;border:1px solid #c9d8e2
+/* v36.1 - modo solo lectura, sin observadores de DOM */
+body.read-only-mode #casinoName,
+body.read-only-mode #dailyBody input,
+body.read-only-mode #flexConfig input,
+body.read-only-mode .company-edit input{
+  background:#f1f3f5!important;
+  color:#68757e!important;
+  cursor:not-allowed!important;
 }
-.session-badge.viewer{
-  background:#fff7df;color:#755000;border-color:#ead18c
+body.read-only-mode .company-edit,
+body.read-only-mode #addCompanyButton,
+body.read-only-mode #reportReadyButton,
+body.read-only-mode #restoreBackupButton,
+body.read-only-mode #resetApplicationButton{
+  display:none!important;
 }
-body.viewer-mode .viewer-hidden{display:none!important}
-body.viewer-mode #casinoName,
-body.viewer-mode #dailyBody input,
-body.viewer-mode #flexConfig input,
-body.viewer-mode .company-edit input{
-  background:#f3f5f7!important;
-  color:#596773!important;
-  cursor:not-allowed!important
+body.read-only-mode .note-readonly{
+  display:block!important;
 }
-body.viewer-mode .company-edit{display:none!important}
-.viewer-notice{
-  margin-top:10px;padding:10px 12px;border-radius:9px;
-  background:#fff7df;border:1px solid #ead18c;color:#755000;
-  font-size:12px;font-weight:800
+.note-readonly{
+  display:none;
+  padding:9px 12px;
+  margin:8px 0 0;
+  border:1px solid #e2c978;
+  border-radius:8px;
+  background:#fff8dd;
+  color:#6d5200;
+  font-size:12px;
+  font-weight:800;
 }
 
 </style>
@@ -458,7 +466,6 @@ body.viewer-mode .company-edit{display:none!important}
       </div>
     </div>
     <div class="server-status-wrap">
-      <div id="sessionBadge" class="session-badge">Sin sesión</div>
       <div class="status" id="saveStatus">Conectando con servidor…</div>
       <button class="btn-secondary btn-small" type="button" onclick="logoutApp()">Cerrar sesión</button>
     </div>
@@ -478,9 +485,10 @@ body.viewer-mode .company-edit{display:none!important}
       </div>
     </div>
     <div id="reportLockNotice" class="report-lock-notice" style="display:none"></div>
-    <div id="viewerNotice" class="viewer-notice" style="display:none">
-      Modo solo lectura: puedes revisar y descargar reportes, pero no modificar información.
+    <div id="readOnlyNotice" class="note-readonly">
+      Usuario de solo lectura: puedes navegar, consultar información y descargar reportes, pero no modificar datos.
     </div>
+
     <div id="flexConfig" class="flex-config" style="display:none"></div>
   </section>
 
@@ -730,7 +738,8 @@ function migrateV3(old){
   return old;
 }
 let state=initialState();
-let currentSession={username:"",role:""};
+let currentUser="";
+let currentRole="";
 let remoteReady=false;
 let remoteRevision=0;
 let remoteUpdatedAt=null;
@@ -773,7 +782,7 @@ function normalizeRemoteState(){
 }
 
 async function loadRemoteState(){
-  setSaveStatus("Conectando con servidor y base de datos…");
+  setSaveStatus("Conectando con servidor…");
   const response=await fetch(API_STATE_URL,{
     method:"GET",
     credentials:"same-origin",
@@ -790,11 +799,9 @@ async function loadRemoteState(){
   }
 
   const payload=await response.json();
-
-  currentSession={
-    username:payload.username||currentSession.username||"",
-    role:payload.role||currentSession.role||""
-  };
+  currentUser=payload.username||currentUser||"";
+  currentRole=payload.role||currentRole||"";
+  applyReadOnlyMode();
 
   if(payload.exists && payload.state?.casinos){
     let loaded=payload.state;
@@ -819,20 +826,20 @@ async function loadRemoteState(){
     const time=remoteUpdatedAt
       ?new Date(remoteUpdatedAt).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})
       :"";
-    if(currentSession.role==="viewer"){
-      setSaveStatus(`Solo lectura · Base de datos conectada${time?" · "+time:""}`);
-    }else{
-      setSaveStatus(`Base de datos conectada${time?" · "+time:""}`);
-    }
+    setSaveStatus(
+      currentRole==="viewer"
+        ?`Solo lectura · Base de datos conectada${time?" · "+time:""}`
+        :`Base de datos conectada${time?" · "+time:""}`
+    );
   }
 
-  applyUserPermissions();
+  applyReadOnlyMode();
   return true;
 }
 
 async function persistRemoteState(immediate=false){
   if(!remoteReady)return;
-  if(currentSession.role==="viewer"){
+  if(currentRole==="viewer"){
     setSaveStatus("Solo lectura · Sin permisos de edición");
     return;
   }
@@ -867,8 +874,8 @@ async function persistRemoteState(immediate=false){
       return;
     }
     if(response.status===403){
-      currentSession.role="viewer";
-      applyUserPermissions();
+      currentRole="viewer";
+      applyReadOnlyMode();
       setSaveStatus("Solo lectura · Sin permisos de edición");
       return;
     }
@@ -943,10 +950,9 @@ async function submitLogin(event){
       return;
     }
 
-    currentSession={
-      username:payload.username||username,
-      role:payload.role||""
-    };
+    currentUser=payload.username||username;
+    currentRole=payload.role||"";
+    applyReadOnlyMode();
     hideLoginOverlay();
     const loaded=await loadRemoteState();
     if(loaded)finishAppInitialization();
@@ -965,8 +971,9 @@ async function logoutApp(){
     });
   }finally{
     remoteReady=false;
-    currentSession={username:"",role:""};
-    applyUserPermissions();
+    currentUser="";
+    currentRole="";
+    applyReadOnlyMode();
     showLoginOverlay("Sesión cerrada.");
   }
 }
@@ -979,7 +986,7 @@ function finishAppInitialization(){
   activeCompanyId=null;
   ensureSelected();
   renderAll();
-  applyUserPermissions();
+  applyReadOnlyMode();
 }
 
 function casino(){return state.casinos[activeCasino]}
@@ -1009,7 +1016,7 @@ function totals(companyId){
 }
 function saveState(message="Guardado"){
   if(!remoteReady)return;
-  if(currentSession.role==="viewer"){
+  if(currentRole==="viewer"){
     setSaveStatus("Solo lectura · Sin permisos de edición");
     return;
   }
@@ -1025,6 +1032,51 @@ function slug(v){return String(v).normalize("NFD").replace(/[\u0300-\u036f]/g,""
 function csvCell(v){return `"${String(v??"").replaceAll('"','""')}"`}
 function downloadFile(name,text,type){const blob=new Blob(["\ufeff"+text],{type:type||"text/plain;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href)}
 
+
+function isReadOnlyUser(){
+  return currentRole==="viewer";
+}
+
+function applyReadOnlyMode(){
+  const readOnly=isReadOnlyUser();
+  document.body.classList.toggle("read-only-mode",readOnly);
+
+  const notice=document.getElementById("readOnlyNotice");
+  if(notice)notice.style.display=readOnly?"block":"none";
+
+  if(readOnly){
+    const user=currentUser?` · ${currentUser}`:"";
+    setSaveStatus(`Solo lectura${user}`);
+  }
+}
+
+function isProtectedReadOnlyTarget(target){
+  if(!target || !target.matches)return false;
+
+  if(target.matches(
+    "#casinoName,#dailyBody input,#flexConfig input,.company-edit input,#backupFile"
+  ))return true;
+
+  if(target.closest?.(
+    "#addCompanyButton,#reportReadyButton,#restoreBackupButton,#resetApplicationButton,.company-edit button"
+  ))return true;
+
+  return false;
+}
+
+function blockReadOnlyEvent(event){
+  if(!isReadOnlyUser())return;
+  if(!isProtectedReadOnlyTarget(event.target))return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  if(typeof showToast==="function"){
+    showToast("Usuario de solo lectura");
+  }
+  setSaveStatus("Solo lectura · Sin permisos de edición");
+}
+
 async function init(){
   document.getElementById("monthSelect").innerHTML=months.map((m,i)=>`<option value="${i+1}">${m}</option>`).join("");
   document.getElementById("monthSelect").value=activeMonth;document.getElementById("yearInput").value=activeYear;
@@ -1034,6 +1086,19 @@ async function init(){
   document.getElementById("backupFile").addEventListener("change",restoreBackup);
   document.querySelectorAll(".view-tab").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.view)));
   document.getElementById("loginForm")?.addEventListener("submit",submitLogin);
+
+  document.addEventListener("click",blockReadOnlyEvent,true);
+  document.addEventListener("beforeinput",blockReadOnlyEvent,true);
+  document.addEventListener("change",blockReadOnlyEvent,true);
+  document.addEventListener("keydown",event=>{
+    if(
+      isReadOnlyUser() &&
+      isProtectedReadOnlyTarget(event.target) &&
+      event.key!=="Tab"
+    ){
+      blockReadOnlyEvent(event);
+    }
+  },true);
 
   try{
     const loaded=await loadRemoteState();
@@ -6302,134 +6367,6 @@ function downloadFinalReportPDF(){
     );
   }
 }
-</script>
-
-
-<script>
-/* v37: roles de usuario. TRIQUELME edita; CMTV y Mrodriguez son solo lectura. */
-function isViewer(){
-  return currentSession?.role==="viewer";
-}
-
-function viewerBlocked(){
-  if(!isViewer())return false;
-  showToast("Usuario en modo solo lectura");
-  setSaveStatus("Solo lectura · Sin permisos de edición");
-  return true;
-}
-
-function applyUserPermissions(){
-  const viewer=isViewer();
-  document.body.classList.toggle("viewer-mode",viewer);
-
-  const badge=document.getElementById("sessionBadge");
-  if(badge){
-    const username=currentSession?.username||"Sin sesión";
-    const badgeText=viewer
-      ?`${username} · Solo lectura`
-      :currentSession?.role==="admin"
-        ?`${username} · Administrador`
-        :username;
-    if(badge.textContent!==badgeText)badge.textContent=badgeText;
-    badge.classList.toggle("viewer",viewer);
-  }
-
-  const notice=document.getElementById("viewerNotice");
-  if(notice){
-    const wantedDisplay=viewer?"block":"none";
-    if(notice.style.display!==wantedDisplay){
-      notice.style.display=wantedDisplay;
-    }
-  }
-
-  const disableSelectors=[
-    "#casinoName",
-    "#dailyBody input",
-    "#flexConfig input",
-    ".company-edit input",
-    ".company-edit button",
-    "#reportReadyButton",
-    "#addCompanyButton",
-    "#restoreBackupButton",
-    "#backupFile",
-    "#resetApplicationButton"
-  ];
-
-  document.querySelectorAll(disableSelectors.join(",")).forEach(el=>{
-    el.disabled=viewer;
-  });
-
-  document.querySelectorAll(".company-edit").forEach(el=>{
-    el.style.display=viewer?"none":"";
-  });
-
-  ["reportReadyButton","addCompanyButton","restoreBackupButton","resetApplicationButton"]
-    .forEach(id=>{
-      const el=document.getElementById(id);
-      if(el)el.style.display=viewer?"none":"";
-    });
-
-  if(viewer){
-    setSaveStatus("Solo lectura · Base de datos conectada");
-  }
-}
-
-function guardMutationFunction(name){
-  const original=window[name];
-  if(typeof original!=="function" || original.__viewerGuarded)return;
-
-  const guarded=function(...args){
-    if(viewerBlocked())return;
-    return original.apply(this,args);
-  };
-  guarded.__viewerGuarded=true;
-  window[name]=guarded;
-}
-
-[
-  "renameCompany",
-  "addCompany",
-  "removeCompany",
-  "updateEntry",
-  "updateServiceName",
-  "updateServicePrice",
-  "restoreBackup",
-  "resetAllData",
-  "toggleReportLock",
-  "updateManualColation"
-].forEach(guardMutationFunction);
-
-/* Nombre del casino usa listener directo, por eso también se bloquea a nivel de evento. */
-document.addEventListener("change",event=>{
-  if(!isViewer())return;
-  const target=event.target;
-  if(
-    target?.matches?.(
-      "#casinoName,#dailyBody input,#flexConfig input,.company-edit input,#backupFile"
-    )
-  ){
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    showToast("Usuario en modo solo lectura");
-    applyUserPermissions();
-  }
-},true);
-
-["renderAll","renderDaily","renderCompanies","renderFlexConfig","applyReportLockUI","renderTabs"]
-  .forEach(name=>{
-    const original=window[name];
-    if(typeof original!=="function" || original.__permissionWrapped)return;
-    const wrapped=function(...args){
-      const result=original.apply(this,args);
-      /* Se ejecuta una sola vez después del render, sin MutationObserver. */
-      applyUserPermissions();
-      return result;
-    };
-    wrapped.__permissionWrapped=true;
-    window[name]=wrapped;
-  });
-
-applyUserPermissions();
 </script>
 
 </body>

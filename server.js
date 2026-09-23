@@ -137,7 +137,7 @@ function requireEditor(req, res, next) {
   }
   if (session.role !== "admin") {
     return res.status(403).json({
-      error: "Usuario de solo lectura. No tiene permisos para modificar información."
+      error: "Usuario de solo lectura."
     });
   }
   req.session = session;
@@ -233,15 +233,13 @@ app.post("/api/login", loginLimiter, (req, res) => {
 
   const normalized = username.toUpperCase();
   const user = users.find(
-    candidate => candidate.username.toUpperCase() === normalized
+    item => item.username.toUpperCase() === normalized
   );
 
-  const valid =
-    !!user &&
-    safeEqual(password, user.password);
-
-  if (!valid) {
-    return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
+  if (!user || !safeEqual(password, user.password)) {
+    return res.status(401).json({
+      error: "Usuario o contraseña incorrectos."
+    });
   }
 
   setSessionCookie(res, user);
@@ -388,16 +386,14 @@ app.put("/api/state", requireEditor, async (req, res) => {
   }
 });
 
-app.get("/", (_req, res) => {
-  res.set("Cache-Control", "no-store, no-cache, must-revalidate");
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
 app.use(express.static(path.join(__dirname, "public"), {
   etag: true,
-  index: false,
   maxAge: NODE_ENV === "production" ? "1h" : 0,
 }));
+
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 async function main() {
   await ensureSchema();

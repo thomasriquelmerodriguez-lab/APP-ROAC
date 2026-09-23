@@ -11,16 +11,3 @@ En Render debes crear/configurar la variable:
 ADMIN_PASSWORD
 
 No publiques la contraseña en GitHub ni la escribas en public/index.html.
-
-
-USUARIOS ADICIONALES V37
-
-CMTV
-Rol: SOLO LECTURA
-Variable en Render: CMTV_PASSWORD
-
-Mrodriguez
-Rol: SOLO LECTURA
-Variable en Render: MRODRIGUEZ_PASSWORD
-
-Ambos pueden visualizar y descargar reportes, pero no editar información.

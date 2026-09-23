@@ -64,47 +64,43 @@ Además, el servidor conserva automáticamente hasta 50 versiones anteriores en 
 - Por seguridad, la contraseña no está escrita dentro de los archivos públicos del proyecto.
 
 
-## Usuarios y permisos – v37
+## v36.1 – usuarios de solo lectura
 
-La aplicación ahora tiene tres perfiles:
+Esta versión parte directamente de la v36 funcional.
 
-- `TRIQUELME`: administrador. Puede visualizar, agregar, modificar, eliminar, restaurar respaldos y bloquear/desbloquear reportes.
-- `CMTV`: solo lectura. Puede revisar toda la información y descargar reportes, pero no modificar datos.
-- `Mrodriguez`: solo lectura. Puede revisar toda la información y descargar reportes, pero no modificar datos.
+Usuarios:
+- TRIQUELME: administrador, conserva todos los permisos.
+- CMTV: solo lectura.
+- Mrodriguez: solo lectura.
 
-### Variables nuevas en Render
+Los usuarios de solo lectura pueden:
+- navegar entre casinos;
+- seleccionar empresas;
+- cambiar mes y año para consultar;
+- revisar todos los datos;
+- abrir resúmenes;
+- generar y descargar reportes;
+- descargar respaldos y CSV.
 
-En **Environment** del Web Service agrega:
+No pueden:
+- modificar cantidades;
+- modificar colaciones;
+- cambiar nombres o valores;
+- agregar/eliminar empresas;
+- cambiar el nombre del casino;
+- restaurar respaldos;
+- restablecer la aplicación;
+- marcar/desmarcar “Reporte listo”.
 
-- `CMTV_PASSWORD` = contraseña que quieras asignar a CMTV.
-- `MRODRIGUEZ_PASSWORD` = contraseña que quieras asignar a Mrodriguez.
+La restricción principal está en el servidor: `PUT /api/state` exige rol administrador.
+La interfaz solo añade un bloqueo simple de los controles de edición.
+No se utilizan MutationObserver ni wrappers de render para los permisos.
 
-Las contraseñas no deben escribirse dentro de GitHub ni en `public/index.html`.
+### Variables de entorno adicionales
 
-El servidor también impide por API que los perfiles de solo lectura ejecuten `PUT /api/state`, por lo que el bloqueo no depende únicamente de la interfaz.
+En Render > Environment agrega:
+- `CMTV_PASSWORD`
+- `MRODRIGUEZ_PASSWORD`
 
-
-## Corrección v38
-
-Se corrigió un problema de interfaz de la v37.
-
-La v37 utilizaba un `MutationObserver` para reaplicar continuamente los permisos
-de usuario. Ese observador podía volver a activarse por los mismos cambios de
-interfaz que realizaba la función de permisos, generando un ciclo continuo en
-el navegador.
-
-La v38:
-- elimina ese `MutationObserver`;
-- reaplica los permisos únicamente después de los renders normales de la app;
-- mantiene TRIQUELME como administrador;
-- mantiene CMTV y Mrodriguez como usuarios de solo lectura;
-- mantiene la validación de permisos también en el servidor/API;
-- no requiere cambios en PostgreSQL ni migración de los datos existentes;
-- conserva las mismas variables de entorno configuradas en Render.
-
-
-### Caché de la página principal
-
-La v38 también configura `/` con `Cache-Control: no-store`. Esto evita que,
-después de un nuevo deploy, el navegador siga utilizando durante un tiempo una
-versión anterior de `index.html`.
+No necesitas cambiar DATABASE_URL, SESSION_SECRET, ADMIN_USERNAME ni ADMIN_PASSWORD.
+No necesitas modificar ni recrear PostgreSQL.
