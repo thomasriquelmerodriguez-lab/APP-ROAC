@@ -1,0 +1,13 @@
+CREDENCIALES DE ACCESO - ROAC
+
+Usuario configurado:
+TRIQUELME
+
+Contraseña:
+Usa la contraseña definida por el propietario al momento de crear este proyecto.
+
+IMPORTANTE:
+En Render debes crear/configurar la variable:
+ADMIN_PASSWORD
+
+No publiques la contraseña en GitHub ni la escribas en public/index.html.

@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: roac-control-casinos
+    runtime: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: roac-casinos-db
+          property: connectionString
+      - key: ADMIN_USERNAME
+        value: TRIQUELME
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+
+databases:
+  - name: roac-casinos-db
+    plan: free
+    databaseName: roac_casinos
+    user: roac_casinos
