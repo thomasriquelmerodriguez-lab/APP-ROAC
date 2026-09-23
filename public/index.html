@@ -453,6 +453,142 @@ body.read-only-mode .note-readonly{
   font-weight:800;
 }
 
+
+/* Dashboard v36.1 */
+.dashboard-shell{padding:20px}
+.dashboard-title-row{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:18px;flex-wrap:wrap;margin-bottom:18px
+}
+.dashboard-title-row h2{margin:0;color:var(--navy)}
+.dashboard-title-row p{
+  margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.45
+}
+.dashboard-badge{
+  display:inline-flex;align-items:center;padding:7px 11px;border-radius:18px;
+  background:#eaf4fb;border:1px solid #b7d6e8;color:var(--navy);
+  font-size:12px;font-weight:900
+}
+.dashboard-filters{
+  display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));
+  gap:12px;margin-bottom:14px
+}
+.dashboard-filter label{
+  display:block;font-size:11px;font-weight:900;color:var(--navy);
+  margin:0 0 6px;text-transform:uppercase;letter-spacing:.02em
+}
+.dashboard-filter select{
+  width:100%;min-height:40px;border:1px solid var(--border);
+  border-radius:8px;padding:8px 10px;background:#fff;color:var(--text)
+}
+.dashboard-options-card{
+  margin:12px 0;padding:13px;border:1px solid var(--border);
+  border-radius:10px;background:#f9fbfc
+}
+.dashboard-options-head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;margin-bottom:10px
+}
+.dashboard-options-head strong{color:var(--navy)}
+.dashboard-options-head small{
+  display:block;margin-top:3px;color:var(--muted);font-size:11px
+}
+.dashboard-mini-actions{display:flex;gap:7px;flex-wrap:wrap}
+.dashboard-months,.dashboard-metrics{
+  display:flex;gap:8px;flex-wrap:wrap
+}
+.dashboard-check{
+  display:inline-flex;align-items:center;gap:6px;padding:7px 9px;
+  border:1px solid #cbd8e0;border-radius:8px;background:#fff;
+  font-size:12px;font-weight:700;color:#344955;cursor:pointer
+}
+.dashboard-check input{margin:0}
+.dashboard-check:has(input:checked){
+  background:#e8f3fa;border-color:#7fb1cf;color:#174f75
+}
+.dashboard-message{
+  margin:14px 0;padding:12px 14px;border-radius:9px;
+  background:#fff7df;border:1px solid #ead18c;color:#755000;
+  font-size:13px;font-weight:800
+}
+.dashboard-kpi-grid{
+  display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));
+  gap:10px;margin:16px 0
+}
+.dashboard-kpi{
+  border:1px solid #bdd1dd;border-radius:11px;overflow:hidden;background:#eef6fa
+}
+.dashboard-kpi span{
+  display:block;padding:7px 9px;background:#216b9f;color:#fff;
+  text-align:center;font-size:10px;font-weight:900;text-transform:uppercase
+}
+.dashboard-kpi strong{
+  display:block;padding:13px 8px;text-align:center;color:#123f61;
+  font-size:20px
+}
+.dashboard-chart-card{
+  margin-top:14px;padding:15px;border:1px solid var(--border);
+  border-radius:12px;background:#fff
+}
+.dashboard-chart-head{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;margin-bottom:8px
+}
+.dashboard-chart-head h3{margin:0;color:var(--navy)}
+.dashboard-chart-head p{
+  margin:4px 0 0;color:var(--muted);font-size:12px
+}
+.dashboard-chart-scroll{overflow-x:auto;padding-bottom:4px}
+.dashboard-svg{
+  display:block;width:100%;min-width:760px;height:auto
+}
+.dashboard-legend{
+  display:flex;gap:12px;flex-wrap:wrap;margin:8px 0 2px;
+  font-size:11px;color:#435764
+}
+.dashboard-legend span{display:inline-flex;align-items:center;gap:5px}
+.dashboard-legend i{
+  display:inline-block;width:10px;height:10px;border-radius:3px
+}
+.dashboard-company-bars{display:grid;gap:9px;margin-top:10px}
+.dashboard-company-row{
+  display:grid;grid-template-columns:minmax(180px,260px) 1fr 90px;
+  gap:10px;align-items:center
+}
+.dashboard-company-label{
+  min-width:0;font-size:12px;font-weight:800;color:#263f50;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.dashboard-company-track{
+  height:18px;border-radius:9px;background:#edf2f5;overflow:hidden;
+  border:1px solid #d4dfe5
+}
+.dashboard-company-fill{
+  height:100%;min-width:2px;border-radius:9px;
+  background:linear-gradient(90deg,#20639b,#2f7d9d)
+}
+.dashboard-company-value{
+  text-align:right;font-size:12px;font-weight:900;color:var(--navy)
+}
+.dashboard-table th{white-space:nowrap}
+.dashboard-table td{text-align:right}
+.dashboard-table td:first-child{text-align:left;font-weight:800}
+.dashboard-table tr.dashboard-total-row td{
+  background:#eaf4fb;font-weight:900;color:var(--navy)
+}
+@media(max-width:1050px){
+  .dashboard-filters{grid-template-columns:repeat(2,minmax(150px,1fr))}
+  .dashboard-kpi-grid{grid-template-columns:repeat(2,minmax(150px,1fr))}
+}
+@media(max-width:620px){
+  .dashboard-filters{grid-template-columns:1fr}
+  .dashboard-kpi-grid{grid-template-columns:1fr}
+  .dashboard-company-row{
+    grid-template-columns:1fr 70px
+  }
+  .dashboard-company-track{grid-column:1 / -1;grid-row:2}
+}
+
 </style>
 </head>
 <body>
@@ -508,6 +644,7 @@ body.read-only-mode .note-readonly{
         <button class="view-tab" data-view="casinoSummaryView">Resumen por casino y servicio</button>
         <button class="view-tab" data-view="companyChargesView">Cobros por empresa</button>
         <button class="view-tab" data-view="finalReportView">Reporte final</button>
+        <button class="view-tab" data-view="dashboardView">Dashboard</button>
         <button class="view-tab" data-view="backupView">Respaldo y exportación</button>
       </div>
     </div>
@@ -660,7 +797,134 @@ body.read-only-mode .note-readonly{
     </div>
   </section>
 
-  <section id="backupView" class="view">
+  
+  <section id="dashboardView" class="view">
+    <div class="card dashboard-shell">
+      <div class="dashboard-title-row">
+        <div>
+          <h2>Dashboard</h2>
+          <p>
+            Compara consumos por casino, empresa y meses. Esta vista es solo de consulta
+            y no modifica la información registrada.
+          </p>
+        </div>
+        <span class="dashboard-badge">Comparación mensual</span>
+      </div>
+
+      <div class="dashboard-filters">
+        <div class="dashboard-filter">
+          <label for="dashboardCasino">Casino</label>
+          <select id="dashboardCasino"></select>
+        </div>
+
+        <div class="dashboard-filter">
+          <label for="dashboardCompany">Empresa</label>
+          <select id="dashboardCompany"></select>
+        </div>
+
+        <div class="dashboard-filter">
+          <label for="dashboardYear">Año</label>
+          <select id="dashboardYear"></select>
+        </div>
+
+        <div class="dashboard-filter">
+          <label for="dashboardChartType">Gráfico mensual</label>
+          <select id="dashboardChartType">
+            <option value="bar">Barras</option>
+            <option value="line">Líneas</option>
+          </select>
+        </div>
+
+        <div class="dashboard-filter">
+          <label for="dashboardCompanyMetric">Gráfico por empresa</label>
+          <select id="dashboardCompanyMetric">
+            <option value="lunch">Total almuerzos</option>
+            <option value="dinner">Total cenas</option>
+            <option value="lunchCol">Total colaciones almuerzo</option>
+            <option value="dinnerCol">Total colaciones cena</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="dashboard-options-card">
+        <div class="dashboard-options-head">
+          <div>
+            <strong>Meses a comparar</strong>
+            <small>Puedes seleccionar dos o más meses del mismo año.</small>
+          </div>
+          <div class="dashboard-mini-actions">
+            <button type="button" class="btn-secondary btn-small" id="dashboardSelectAllMonths">
+              Todos
+            </button>
+            <button type="button" class="btn-secondary btn-small" id="dashboardClearMonths">
+              Limpiar
+            </button>
+          </div>
+        </div>
+        <div id="dashboardMonths" class="dashboard-months"></div>
+      </div>
+
+      <div class="dashboard-options-card">
+        <div class="dashboard-options-head">
+          <div>
+            <strong>Indicadores del gráfico mensual</strong>
+            <small>Selecciona uno o más indicadores para comparar.</small>
+          </div>
+        </div>
+        <div id="dashboardMetrics" class="dashboard-metrics"></div>
+      </div>
+
+      <div id="dashboardMessage" class="dashboard-message" style="display:none"></div>
+
+      <div id="dashboardKpis" class="dashboard-kpi-grid"></div>
+
+      <div class="dashboard-chart-card">
+        <div class="dashboard-chart-head">
+          <div>
+            <h3>Comparación por mes</h3>
+            <p id="dashboardMonthlySubtitle"></p>
+          </div>
+        </div>
+        <div id="dashboardMonthlyChart" class="dashboard-chart-scroll"></div>
+      </div>
+
+      <div class="dashboard-chart-card">
+        <div class="dashboard-chart-head">
+          <div>
+            <h3>Comparación por empresa</h3>
+            <p id="dashboardCompanySubtitle"></p>
+          </div>
+        </div>
+        <div id="dashboardCompanyChart"></div>
+      </div>
+
+      <div class="dashboard-chart-card">
+        <div class="dashboard-chart-head">
+          <div>
+            <h3>Detalle mensual</h3>
+            <p>Totales calculados con los mismos datos utilizados por la aplicación.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="dashboard-table">
+            <thead>
+              <tr>
+                <th>Mes</th>
+                <th>Total almuerzos</th>
+                <th>Total cenas</th>
+                <th>Colaciones almuerzo</th>
+                <th>Colaciones cena</th>
+                <th>Total a pagar</th>
+              </tr>
+            </thead>
+            <tbody id="dashboardTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<section id="backupView" class="view">
     <div class="backup-grid">
       <div class="info-card"><h3>Descargar respaldo</h3><p style="font-size:13px;color:var(--muted)">Guarda todos los casinos, empresas y meses.</p><button class="btn-primary" onclick="downloadBackup()">Descargar JSON</button></div>
       <div class="info-card"><h3>Restaurar respaldo</h3><p style="font-size:13px;color:var(--muted)">Reemplaza la información por un respaldo anterior.</p><button id="restoreBackupButton" class="btn-secondary" onclick="document.getElementById('backupFile').click()">Seleccionar archivo</button><input id="backupFile" type="file" accept=".json" hidden></div>
@@ -6387,6 +6651,629 @@ function downloadFinalReportPDF(){
     );
   }
 }
+</script>
+
+
+<script>
+/* Dashboard v36.1: consulta y comparación multi-mes */
+const DASHBOARD_METRICS=[
+  {key:"lunch",label:"Total almuerzos",color:"#20639b"},
+  {key:"dinner",label:"Total cenas",color:"#2f7d4a"},
+  {key:"lunchCol",label:"Colaciones almuerzo",color:"#c76524"},
+  {key:"dinnerCol",label:"Colaciones cena",color:"#6f4aa8"}
+];
+
+let dashboardInitialized=false;
+
+function dashboardCasinoKeys(){
+  return ["salamanca","mina","quilmenco"].filter(
+    key=>state?.casinos?.[key]
+  );
+}
+
+function dashboardAvailableYears(){
+  const years=new Set([activeYear,new Date().getFullYear()]);
+  dashboardCasinoKeys().forEach(key=>{
+    Object.keys(state.casinos[key].entries||{}).forEach(period=>{
+      const year=Number(String(period).slice(0,4));
+      if(Number.isFinite(year))years.add(year);
+    });
+  });
+  return [...years].sort((a,b)=>b-a);
+}
+
+function dashboardMonthSelections(){
+  return [...document.querySelectorAll(
+    '#dashboardMonths input[type="checkbox"]:checked'
+  )]
+    .map(input=>Number(input.value))
+    .filter(month=>month>=1&&month<=12)
+    .sort((a,b)=>a-b);
+}
+
+function dashboardMetricSelections(){
+  return [...document.querySelectorAll(
+    '#dashboardMetrics input[type="checkbox"]:checked'
+  )].map(input=>input.value);
+}
+
+function dashboardHasManual(entry,field){
+  return Object.prototype.hasOwnProperty.call(entry||{},field);
+}
+
+function dashboardCompanyPeriod(casinoKey,companyId,year,month){
+  const current=state.casinos?.[casinoKey];
+  if(!current){
+    return {lunch:0,dinner:0,lunchCol:0,dinnerCol:0,totalAmount:0};
+  }
+
+  const period=`${year}-${String(month).padStart(2,"0")}`;
+  const days=current.entries?.[period]?.[companyId]||{};
+  let lunch=0,dinner=0,lunchCol=0,dinnerCol=0;
+
+  Object.values(days).forEach(entry=>{
+    if(!entry || typeof entry!=="object")return;
+
+    let dayLunch=0;
+    let dayDinner=0;
+
+    if(current.split){
+      dayLunch=num(entry.lunchSystem)+num(entry.lunchSheet);
+      dayDinner=num(entry.dinnerSystem)+num(entry.dinnerSheet);
+    }else{
+      dayLunch=num(entry.lunch);
+      dayDinner=num(entry.dinner);
+    }
+
+    lunch+=dayLunch;
+    dinner+=dayDinner;
+
+    lunchCol+=dashboardHasManual(entry,"lunchColManual")
+      ?num(entry.lunchColManual)
+      :dayLunch;
+
+    dinnerCol+=dashboardHasManual(entry,"dinnerColManual")
+      ?num(entry.dinnerColManual)
+      :dayDinner;
+  });
+
+  return {
+    lunch,
+    dinner,
+    lunchCol,
+    dinnerCol,
+    totalAmount:
+      (lunch+dinner)*MEAL_PRICE+
+      (lunchCol+dinnerCol)*COLATION_PRICE
+  };
+}
+
+function dashboardSelectedCasinoKeys(){
+  const value=document.getElementById("dashboardCasino")?.value||"ALL";
+  return value==="ALL"
+    ?dashboardCasinoKeys()
+    :dashboardCasinoKeys().filter(key=>key===value);
+}
+
+function dashboardAllCompanyRefs(){
+  const refs=[];
+  dashboardSelectedCasinoKeys().forEach(casinoKey=>{
+    const current=state.casinos[casinoKey];
+    (current.companies||[]).forEach(company=>{
+      refs.push({
+        casinoKey,
+        casinoName:current.name,
+        companyId:company.id,
+        companyName:company.name,
+        value:`${casinoKey}::${company.id}`
+      });
+    });
+  });
+  return refs;
+}
+
+function dashboardSelectedCompanyRefs(){
+  const all=dashboardAllCompanyRefs();
+  const selected=document.getElementById("dashboardCompany")?.value||"ALL";
+  return selected==="ALL"
+    ?all
+    :all.filter(ref=>ref.value===selected);
+}
+
+function dashboardAggregateMonth(year,month,refs){
+  const total={
+    month,
+    label:months[month-1],
+    lunch:0,
+    dinner:0,
+    lunchCol:0,
+    dinnerCol:0,
+    totalAmount:0
+  };
+
+  refs.forEach(ref=>{
+    const value=dashboardCompanyPeriod(
+      ref.casinoKey,
+      ref.companyId,
+      year,
+      month
+    );
+    total.lunch+=value.lunch;
+    total.dinner+=value.dinner;
+    total.lunchCol+=value.lunchCol;
+    total.dinnerCol+=value.dinnerCol;
+    total.totalAmount+=value.totalAmount;
+  });
+
+  return total;
+}
+
+function dashboardPopulateCasino(){
+  const select=document.getElementById("dashboardCasino");
+  if(!select)return;
+
+  const previous=select.value||"ALL";
+  select.innerHTML=
+    `<option value="ALL">Todos los casinos</option>`+
+    dashboardCasinoKeys().map(key=>
+      `<option value="${escapeAttr(key)}">${
+        escapeHtml(state.casinos[key].name)
+      }</option>`
+    ).join("");
+
+  select.value=[...select.options].some(o=>o.value===previous)
+    ?previous
+    :"ALL";
+}
+
+function dashboardPopulateCompanies(){
+  const select=document.getElementById("dashboardCompany");
+  if(!select)return;
+
+  const previous=select.value||"ALL";
+  const refs=dashboardAllCompanyRefs();
+
+  select.innerHTML=
+    `<option value="ALL">Todas las empresas</option>`+
+    refs.map(ref=>{
+      const label=dashboardSelectedCasinoKeys().length>1
+        ?`${ref.casinoName} · ${ref.companyName}`
+        :ref.companyName;
+      return `<option value="${escapeAttr(ref.value)}">${
+        escapeHtml(label)
+      }</option>`;
+    }).join("");
+
+  select.value=[...select.options].some(o=>o.value===previous)
+    ?previous
+    :"ALL";
+}
+
+function dashboardPopulateYears(){
+  const select=document.getElementById("dashboardYear");
+  if(!select)return;
+
+  const previous=Number(select.value)||activeYear;
+  const years=dashboardAvailableYears();
+
+  select.innerHTML=years.map(year=>
+    `<option value="${year}">${year}</option>`
+  ).join("");
+
+  select.value=years.includes(previous)
+    ?String(previous)
+    :String(years[0]||activeYear);
+}
+
+function dashboardPopulateMonths(){
+  const box=document.getElementById("dashboardMonths");
+  if(!box)return;
+
+  const alreadyChecked=dashboardMonthSelections();
+  const defaultMonths=alreadyChecked.length
+    ?alreadyChecked
+    :[
+        activeMonth===1?12:activeMonth-1,
+        activeMonth
+      ];
+
+  box.innerHTML=months.map((name,index)=>{
+    const value=index+1;
+    const checked=defaultMonths.includes(value)?"checked":"";
+    return `<label class="dashboard-check">
+      <input type="checkbox" value="${value}" ${checked}>
+      <span>${escapeHtml(name)}</span>
+    </label>`;
+  }).join("");
+}
+
+function dashboardPopulateMetrics(){
+  const box=document.getElementById("dashboardMetrics");
+  if(!box)return;
+
+  const selected=dashboardMetricSelections();
+  const defaultsSelected=selected.length
+    ?selected
+    :DASHBOARD_METRICS.map(metric=>metric.key);
+
+  box.innerHTML=DASHBOARD_METRICS.map(metric=>`
+    <label class="dashboard-check">
+      <input
+        type="checkbox"
+        value="${metric.key}"
+        ${defaultsSelected.includes(metric.key)?"checked":""}
+      >
+      <span>${escapeHtml(metric.label)}</span>
+    </label>
+  `).join("");
+}
+
+function dashboardInit(){
+  dashboardPopulateCasino();
+  dashboardPopulateYears();
+  dashboardPopulateMonths();
+  dashboardPopulateMetrics();
+  dashboardPopulateCompanies();
+
+  if(dashboardInitialized)return;
+  dashboardInitialized=true;
+
+  document.getElementById("dashboardCasino")
+    ?.addEventListener("change",()=>{
+      dashboardPopulateCompanies();
+      renderDashboard();
+    });
+
+  document.getElementById("dashboardCompany")
+    ?.addEventListener("change",renderDashboard);
+
+  document.getElementById("dashboardYear")
+    ?.addEventListener("change",renderDashboard);
+
+  document.getElementById("dashboardChartType")
+    ?.addEventListener("change",renderDashboard);
+
+  document.getElementById("dashboardCompanyMetric")
+    ?.addEventListener("change",renderDashboard);
+
+  document.getElementById("dashboardMonths")
+    ?.addEventListener("change",renderDashboard);
+
+  document.getElementById("dashboardMetrics")
+    ?.addEventListener("change",renderDashboard);
+
+  document.getElementById("dashboardSelectAllMonths")
+    ?.addEventListener("click",()=>{
+      document.querySelectorAll(
+        '#dashboardMonths input[type="checkbox"]'
+      ).forEach(input=>input.checked=true);
+      renderDashboard();
+    });
+
+  document.getElementById("dashboardClearMonths")
+    ?.addEventListener("click",()=>{
+      document.querySelectorAll(
+        '#dashboardMonths input[type="checkbox"]'
+      ).forEach(input=>input.checked=false);
+      renderDashboard();
+    });
+}
+
+function dashboardSvgEscape(value){
+  return escapeHtml(String(value??""));
+}
+
+function dashboardMonthlySvg(data,metrics,type){
+  if(!data.length || !metrics.length)return "";
+
+  const width=Math.max(820,data.length*105);
+  const height=390;
+  const left=74,right=24,top=30,bottom=64;
+  const plotW=width-left-right;
+  const plotH=height-top-bottom;
+  const maxValue=Math.max(
+    1,
+    ...data.flatMap(row=>metrics.map(metric=>Number(row[metric.key])||0))
+  );
+  const tickCount=5;
+  const y=value=>top+plotH-(value/maxValue)*plotH;
+  const xStep=plotW/data.length;
+  const monthX=index=>left+xStep*(index+.5);
+
+  const grid=[];
+  for(let i=0;i<=tickCount;i++){
+    const value=maxValue*(i/tickCount);
+    const yy=y(value);
+    grid.push(
+      `<line x1="${left}" y1="${yy}" x2="${width-right}" y2="${yy}" `+
+      `stroke="#dbe5ea" stroke-width="1"/>`
+    );
+    grid.push(
+      `<text x="${left-10}" y="${yy+4}" text-anchor="end" `+
+      `font-size="11" fill="#617482">${dashboardSvgEscape(fmt(value))}</text>`
+    );
+  }
+
+  const xLabels=data.map((row,index)=>
+    `<text x="${monthX(index)}" y="${height-28}" text-anchor="middle" `+
+    `font-size="11" font-weight="700" fill="#405663">${
+      dashboardSvgEscape(row.label.slice(0,3))
+    }</text>`
+  ).join("");
+
+  let marks="";
+
+  if(type==="line"){
+    metrics.forEach(metric=>{
+      const points=data.map((row,index)=>
+        `${monthX(index)},${y(row[metric.key]||0)}`
+      ).join(" ");
+
+      marks+=
+        `<polyline fill="none" stroke="${metric.color}" stroke-width="3" `+
+        `stroke-linejoin="round" stroke-linecap="round" points="${points}"/>`;
+
+      data.forEach((row,index)=>{
+        const value=row[metric.key]||0;
+        marks+=
+          `<circle cx="${monthX(index)}" cy="${y(value)}" r="5" `+
+          `fill="${metric.color}" stroke="#fff" stroke-width="2">`+
+          `<title>${dashboardSvgEscape(metric.label)} · ${
+            dashboardSvgEscape(row.label)
+          }: ${dashboardSvgEscape(fmt(value))}</title></circle>`;
+      });
+    });
+  }else{
+    const groupWidth=Math.min(xStep*.76,78);
+    const gap=3;
+    const barWidth=Math.max(
+      5,
+      (groupWidth-gap*(metrics.length-1))/metrics.length
+    );
+
+    data.forEach((row,index)=>{
+      const start=monthX(index)-groupWidth/2;
+      metrics.forEach((metric,metricIndex)=>{
+        const value=row[metric.key]||0;
+        const xx=start+metricIndex*(barWidth+gap);
+        const yy=y(value);
+        const hh=top+plotH-yy;
+        marks+=
+          `<rect x="${xx}" y="${yy}" width="${barWidth}" height="${Math.max(hh,1)}" `+
+          `rx="3" fill="${metric.color}">`+
+          `<title>${dashboardSvgEscape(metric.label)} · ${
+            dashboardSvgEscape(row.label)
+          }: ${dashboardSvgEscape(fmt(value))}</title></rect>`;
+      });
+    });
+  }
+
+  return `
+    <div class="dashboard-legend">
+      ${metrics.map(metric=>`
+        <span><i style="background:${metric.color}"></i>${
+          escapeHtml(metric.label)
+        }</span>
+      `).join("")}
+    </div>
+    <svg
+      class="dashboard-svg"
+      viewBox="0 0 ${width} ${height}"
+      role="img"
+      aria-label="Comparación mensual"
+    >
+      ${grid.join("")}
+      <line x1="${left}" y1="${top+plotH}" x2="${width-right}" y2="${top+plotH}"
+        stroke="#9eb1bc" stroke-width="1.5"/>
+      ${marks}
+      ${xLabels}
+    </svg>`;
+}
+
+function dashboardCompanyBars(companyRows,metricKey){
+  const metric=DASHBOARD_METRICS.find(item=>item.key===metricKey)
+    ||DASHBOARD_METRICS[0];
+
+  if(!companyRows.length){
+    return `<div class="dashboard-message">No existen empresas para los filtros seleccionados.</div>`;
+  }
+
+  const sorted=[...companyRows]
+    .sort((a,b)=>(b[metricKey]||0)-(a[metricKey]||0));
+  const max=Math.max(1,...sorted.map(row=>row[metricKey]||0));
+
+  return `
+    <div class="dashboard-legend">
+      <span><i style="background:${metric.color}"></i>${
+        escapeHtml(metric.label)
+      }</span>
+    </div>
+    <div class="dashboard-company-bars">
+      ${sorted.map(row=>{
+        const value=row[metricKey]||0;
+        const pct=Math.max(0,Math.min(100,(value/max)*100));
+        return `<div class="dashboard-company-row">
+          <div class="dashboard-company-label" title="${
+            escapeAttr(row.label)
+          }">${escapeHtml(row.label)}</div>
+          <div class="dashboard-company-track">
+            <div
+              class="dashboard-company-fill"
+              style="width:${pct}%;background:${metric.color}"
+            ></div>
+          </div>
+          <div class="dashboard-company-value">${fmt(value)}</div>
+        </div>`;
+      }).join("")}
+    </div>`;
+}
+
+function dashboardCompanyRows(year,selectedMonths,refs){
+  return refs.map(ref=>{
+    const row={
+      label:dashboardSelectedCasinoKeys().length>1
+        ?`${ref.casinoName} · ${ref.companyName}`
+        :ref.companyName,
+      lunch:0,
+      dinner:0,
+      lunchCol:0,
+      dinnerCol:0,
+      totalAmount:0
+    };
+
+    selectedMonths.forEach(month=>{
+      const value=dashboardCompanyPeriod(
+        ref.casinoKey,
+        ref.companyId,
+        year,
+        month
+      );
+      row.lunch+=value.lunch;
+      row.dinner+=value.dinner;
+      row.lunchCol+=value.lunchCol;
+      row.dinnerCol+=value.dinnerCol;
+      row.totalAmount+=value.totalAmount;
+    });
+
+    return row;
+  });
+}
+
+function renderDashboard(){
+  dashboardInit();
+
+  const message=document.getElementById("dashboardMessage");
+  const selectedMonths=dashboardMonthSelections();
+  const metricKeys=dashboardMetricSelections();
+  const metrics=DASHBOARD_METRICS.filter(
+    metric=>metricKeys.includes(metric.key)
+  );
+  const year=Number(
+    document.getElementById("dashboardYear")?.value
+  )||activeYear;
+  const refs=dashboardSelectedCompanyRefs();
+
+  if(!selectedMonths.length){
+    message.style.display="block";
+    message.textContent="Selecciona al menos un mes para generar el Dashboard.";
+    document.getElementById("dashboardKpis").innerHTML="";
+    document.getElementById("dashboardMonthlyChart").innerHTML="";
+    document.getElementById("dashboardCompanyChart").innerHTML="";
+    document.getElementById("dashboardTableBody").innerHTML="";
+    return;
+  }
+
+  if(!metrics.length){
+    message.style.display="block";
+    message.textContent="Selecciona al menos un indicador para el gráfico mensual.";
+  }else{
+    message.style.display="none";
+    message.textContent="";
+  }
+
+  const monthly=selectedMonths.map(
+    month=>dashboardAggregateMonth(year,month,refs)
+  );
+
+  const grand=monthly.reduce((acc,row)=>{
+    acc.lunch+=row.lunch;
+    acc.dinner+=row.dinner;
+    acc.lunchCol+=row.lunchCol;
+    acc.dinnerCol+=row.dinnerCol;
+    acc.totalAmount+=row.totalAmount;
+    return acc;
+  },{
+    lunch:0,dinner:0,lunchCol:0,dinnerCol:0,totalAmount:0
+  });
+
+  document.getElementById("dashboardKpis").innerHTML=[
+    ["Total almuerzos",fmt(grand.lunch)],
+    ["Total cenas",fmt(grand.dinner)],
+    ["Colaciones almuerzo",fmt(grand.lunchCol)],
+    ["Colaciones cena",fmt(grand.dinnerCol)],
+    ["Total a pagar",money(grand.totalAmount)]
+  ].map(([label,value])=>`
+    <div class="dashboard-kpi">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+    </div>
+  `).join("");
+
+  const casinoSelect=document.getElementById("dashboardCasino");
+  const companySelect=document.getElementById("dashboardCompany");
+  const casinoText=casinoSelect.options[casinoSelect.selectedIndex]?.text||"";
+  const companyText=companySelect.options[companySelect.selectedIndex]?.text||"";
+  const monthText=selectedMonths.map(month=>months[month-1]).join(", ");
+
+  document.getElementById("dashboardMonthlySubtitle").textContent=
+    `${casinoText} · ${companyText} · ${monthText} ${year}`;
+
+  document.getElementById("dashboardMonthlyChart").innerHTML=
+    metrics.length
+      ?dashboardMonthlySvg(
+          monthly,
+          metrics,
+          document.getElementById("dashboardChartType")?.value||"bar"
+        )
+      :"";
+
+  const companyRows=dashboardCompanyRows(year,selectedMonths,refs);
+  const companyMetric=document.getElementById("dashboardCompanyMetric")?.value||"lunch";
+  const metricLabel=DASHBOARD_METRICS.find(
+    metric=>metric.key===companyMetric
+  )?.label||"Total almuerzos";
+
+  document.getElementById("dashboardCompanySubtitle").textContent=
+    `${metricLabel} acumulado · ${monthText} ${year}`;
+
+  document.getElementById("dashboardCompanyChart").innerHTML=
+    dashboardCompanyBars(companyRows,companyMetric);
+
+  const body=document.getElementById("dashboardTableBody");
+  body.innerHTML=
+    monthly.map(row=>`
+      <tr>
+        <td>${escapeHtml(row.label)} ${year}</td>
+        <td>${fmt(row.lunch)}</td>
+        <td>${fmt(row.dinner)}</td>
+        <td>${fmt(row.lunchCol)}</td>
+        <td>${fmt(row.dinnerCol)}</td>
+        <td>${money(row.totalAmount)}</td>
+      </tr>
+    `).join("")+
+    `<tr class="dashboard-total-row">
+      <td>TOTAL SELECCIÓN</td>
+      <td>${fmt(grand.lunch)}</td>
+      <td>${fmt(grand.dinner)}</td>
+      <td>${fmt(grand.lunchCol)}</td>
+      <td>${fmt(grand.dinnerCol)}</td>
+      <td>${money(grand.totalAmount)}</td>
+    </tr>`;
+}
+
+/* Se integra a la navegación actual sin modificar las vistas existentes. */
+const showViewAntesDashboard=showView;
+showView=function(id){
+  showViewAntesDashboard(id);
+  if(id==="dashboardView"){
+    renderDashboard();
+  }
+};
+
+const renderAllAntesDashboard=renderAll;
+renderAll=function(){
+  const result=renderAllAntesDashboard();
+  if(
+    document.getElementById("dashboardView")
+      ?.classList.contains("active")
+  ){
+    dashboardPopulateCasino();
+    dashboardPopulateYears();
+    dashboardPopulateCompanies();
+    renderDashboard();
+  }
+  return result;
+};
 </script>
 
 </body>
