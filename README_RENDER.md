@@ -62,3 +62,23 @@ Además, el servidor conserva automáticamente hasta 50 versiones anteriores en 
 - Usuario: `TRIQUELME`
 - La contraseña se configura únicamente en Render como `ADMIN_PASSWORD`.
 - Por seguridad, la contraseña no está escrita dentro de los archivos públicos del proyecto.
+
+
+## Usuarios y permisos – v37
+
+La aplicación ahora tiene tres perfiles:
+
+- `TRIQUELME`: administrador. Puede visualizar, agregar, modificar, eliminar, restaurar respaldos y bloquear/desbloquear reportes.
+- `CMTV`: solo lectura. Puede revisar toda la información y descargar reportes, pero no modificar datos.
+- `Mrodriguez`: solo lectura. Puede revisar toda la información y descargar reportes, pero no modificar datos.
+
+### Variables nuevas en Render
+
+En **Environment** del Web Service agrega:
+
+- `CMTV_PASSWORD` = contraseña que quieras asignar a CMTV.
+- `MRODRIGUEZ_PASSWORD` = contraseña que quieras asignar a Mrodriguez.
+
+Las contraseñas no deben escribirse dentro de GitHub ni en `public/index.html`.
+
+El servidor también impide por API que los perfiles de solo lectura ejecuten `PUT /api/state`, por lo que el bloqueo no depende únicamente de la interfaz.

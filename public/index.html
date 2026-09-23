@@ -421,6 +421,30 @@ body.period-locked .company-item{cursor:default}
 .login-card button{width:100%;margin-top:6px}
 .login-error{min-height:18px;color:#a61b1b;font-size:12px;font-weight:700}
 
+
+.session-badge{
+  padding:6px 10px;border-radius:18px;font-size:12px;font-weight:900;
+  background:#edf3f7;color:#173f5f;border:1px solid #c9d8e2
+}
+.session-badge.viewer{
+  background:#fff7df;color:#755000;border-color:#ead18c
+}
+body.viewer-mode .viewer-hidden{display:none!important}
+body.viewer-mode #casinoName,
+body.viewer-mode #dailyBody input,
+body.viewer-mode #flexConfig input,
+body.viewer-mode .company-edit input{
+  background:#f3f5f7!important;
+  color:#596773!important;
+  cursor:not-allowed!important
+}
+body.viewer-mode .company-edit{display:none!important}
+.viewer-notice{
+  margin-top:10px;padding:10px 12px;border-radius:9px;
+  background:#fff7df;border:1px solid #ead18c;color:#755000;
+  font-size:12px;font-weight:800
+}
+
 </style>
 </head>
 <body>
@@ -434,6 +458,7 @@ body.period-locked .company-item{cursor:default}
       </div>
     </div>
     <div class="server-status-wrap">
+      <div id="sessionBadge" class="session-badge">Sin sesión</div>
       <div class="status" id="saveStatus">Conectando con servidor…</div>
       <button class="btn-secondary btn-small" type="button" onclick="logoutApp()">Cerrar sesión</button>
     </div>
@@ -453,6 +478,9 @@ body.period-locked .company-item{cursor:default}
       </div>
     </div>
     <div id="reportLockNotice" class="report-lock-notice" style="display:none"></div>
+    <div id="viewerNotice" class="viewer-notice" style="display:none">
+      Modo solo lectura: puedes revisar y descargar reportes, pero no modificar información.
+    </div>
     <div id="flexConfig" class="flex-config" style="display:none"></div>
   </section>
 
@@ -643,10 +671,10 @@ body.period-locked .company-item{cursor:default}
   <div class="login-card">
     <div class="login-brand">ROAC SERVICIOS INTEGRALES</div>
     <h2>Ingreso al sistema</h2>
-    <p>Ingresa la contraseña configurada en Render para acceder a la información compartida.</p>
+    <p>Ingresa tu usuario y contraseña para acceder a la información compartida.</p>
     <form id="loginForm">
       <label for="loginUsername">Usuario</label>
-      <input id="loginUsername" type="text" autocomplete="username" value="TRIQUELME" required>
+      <input id="loginUsername" type="text" autocomplete="username" placeholder="Usuario" required>
       <label for="loginPassword">Contraseña</label>
       <input id="loginPassword" type="password" autocomplete="current-password" required>
       <div id="loginError" class="login-error"></div>
@@ -702,6 +730,7 @@ function migrateV3(old){
   return old;
 }
 let state=initialState();
+let currentSession={username:"",role:""};
 let remoteReady=false;
 let remoteRevision=0;
 let remoteUpdatedAt=null;
@@ -762,6 +791,11 @@ async function loadRemoteState(){
 
   const payload=await response.json();
 
+  currentSession={
+    username:payload.username||currentSession.username||"",
+    role:payload.role||currentSession.role||""
+  };
+
   if(payload.exists && payload.state?.casinos){
     let loaded=payload.state;
     if(loaded.version===3)loaded=migrateV3(loaded);
@@ -785,14 +819,23 @@ async function loadRemoteState(){
     const time=remoteUpdatedAt
       ?new Date(remoteUpdatedAt).toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})
       :"";
-    setSaveStatus(`Base de datos conectada${time?" · "+time:""}`);
+    if(currentSession.role==="viewer"){
+      setSaveStatus(`Solo lectura · Base de datos conectada${time?" · "+time:""}`);
+    }else{
+      setSaveStatus(`Base de datos conectada${time?" · "+time:""}`);
+    }
   }
 
+  applyUserPermissions();
   return true;
 }
 
 async function persistRemoteState(immediate=false){
   if(!remoteReady)return;
+  if(currentSession.role==="viewer"){
+    setSaveStatus("Solo lectura · Sin permisos de edición");
+    return;
+  }
   if(saveInFlight){
     saveAgain=true;
     return;
@@ -821,6 +864,12 @@ async function persistRemoteState(immediate=false){
     if(response.status===401){
       remoteReady=false;
       showLoginOverlay("La sesión expiró. Ingresa nuevamente.");
+      return;
+    }
+    if(response.status===403){
+      currentSession.role="viewer";
+      applyUserPermissions();
+      setSaveStatus("Solo lectura · Sin permisos de edición");
       return;
     }
 
@@ -894,6 +943,10 @@ async function submitLogin(event){
       return;
     }
 
+    currentSession={
+      username:payload.username||username,
+      role:payload.role||""
+    };
     hideLoginOverlay();
     const loaded=await loadRemoteState();
     if(loaded)finishAppInitialization();
@@ -912,6 +965,8 @@ async function logoutApp(){
     });
   }finally{
     remoteReady=false;
+    currentSession={username:"",role:""};
+    applyUserPermissions();
     showLoginOverlay("Sesión cerrada.");
   }
 }
@@ -924,6 +979,7 @@ function finishAppInitialization(){
   activeCompanyId=null;
   ensureSelected();
   renderAll();
+  applyUserPermissions();
 }
 
 function casino(){return state.casinos[activeCasino]}
@@ -953,6 +1009,10 @@ function totals(companyId){
 }
 function saveState(message="Guardado"){
   if(!remoteReady)return;
+  if(currentSession.role==="viewer"){
+    setSaveStatus("Solo lectura · Sin permisos de edición");
+    return;
+  }
   if(message)pendingSaveMessage=message;
   setSaveStatus("Cambios pendientes…");
   clearTimeout(saveTimer);
@@ -6242,6 +6302,134 @@ function downloadFinalReportPDF(){
     );
   }
 }
+</script>
+
+
+<script>
+/* v37: roles de usuario. TRIQUELME edita; CMTV y Mrodriguez son solo lectura. */
+function isViewer(){
+  return currentSession?.role==="viewer";
+}
+
+function viewerBlocked(){
+  if(!isViewer())return false;
+  showToast("Usuario en modo solo lectura");
+  setSaveStatus("Solo lectura · Sin permisos de edición");
+  return true;
+}
+
+function applyUserPermissions(){
+  const viewer=isViewer();
+  document.body.classList.toggle("viewer-mode",viewer);
+
+  const badge=document.getElementById("sessionBadge");
+  if(badge){
+    const username=currentSession?.username||"Sin sesión";
+    badge.textContent=viewer
+      ?`${username} · Solo lectura`
+      :currentSession?.role==="admin"
+        ?`${username} · Administrador`
+        :username;
+    badge.classList.toggle("viewer",viewer);
+  }
+
+  const notice=document.getElementById("viewerNotice");
+  if(notice)notice.style.display=viewer?"block":"none";
+
+  const disableSelectors=[
+    "#casinoName",
+    "#dailyBody input",
+    "#flexConfig input",
+    ".company-edit input",
+    ".company-edit button",
+    "#reportReadyButton",
+    "#addCompanyButton",
+    "#restoreBackupButton",
+    "#backupFile",
+    "#resetApplicationButton"
+  ];
+
+  document.querySelectorAll(disableSelectors.join(",")).forEach(el=>{
+    el.disabled=viewer;
+  });
+
+  document.querySelectorAll(".company-edit").forEach(el=>{
+    el.style.display=viewer?"none":"";
+  });
+
+  ["reportReadyButton","addCompanyButton","restoreBackupButton","resetApplicationButton"]
+    .forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.style.display=viewer?"none":"";
+    });
+
+  if(viewer){
+    setSaveStatus("Solo lectura · Base de datos conectada");
+  }
+}
+
+function guardMutationFunction(name){
+  const original=window[name];
+  if(typeof original!=="function" || original.__viewerGuarded)return;
+
+  const guarded=function(...args){
+    if(viewerBlocked())return;
+    return original.apply(this,args);
+  };
+  guarded.__viewerGuarded=true;
+  window[name]=guarded;
+}
+
+[
+  "renameCompany",
+  "addCompany",
+  "removeCompany",
+  "updateEntry",
+  "updateServiceName",
+  "updateServicePrice",
+  "restoreBackup",
+  "resetAllData",
+  "toggleReportLock",
+  "updateManualColation"
+].forEach(guardMutationFunction);
+
+/* Nombre del casino usa listener directo, por eso también se bloquea a nivel de evento. */
+document.addEventListener("change",event=>{
+  if(!isViewer())return;
+  const target=event.target;
+  if(
+    target?.matches?.(
+      "#casinoName,#dailyBody input,#flexConfig input,.company-edit input,#backupFile"
+    )
+  ){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    showToast("Usuario en modo solo lectura");
+    renderAll();
+    applyUserPermissions();
+  }
+},true);
+
+/* Reaplica permisos cuando las tablas dinámicas se vuelven a renderizar. */
+const permissionObserver=new MutationObserver(()=>{
+  applyUserPermissions();
+});
+permissionObserver.observe(document.body,{childList:true,subtree:true});
+
+["renderAll","renderDaily","renderCompanies","renderFlexConfig","applyReportLockUI"]
+  .forEach(name=>{
+    const original=window[name];
+    if(typeof original!=="function" || original.__permissionWrapped)return;
+    const wrapped=function(...args){
+      const result=original.apply(this,args);
+      applyUserPermissions();
+      return result;
+    };
+    wrapped.__permissionWrapped=true;
+    window[name]=wrapped;
+  });
+
+applyUserPermissions();
 </script>
 
 </body>

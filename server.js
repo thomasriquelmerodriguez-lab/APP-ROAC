@@ -10,6 +10,8 @@ const PORT = Number(process.env.PORT || 10000);
 const DATABASE_URL = process.env.DATABASE_URL;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "TRIQUELME";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const CMTV_PASSWORD = process.env.CMTV_PASSWORD;
+const MRODRIGUEZ_PASSWORD = process.env.MRODRIGUEZ_PASSWORD;
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const NODE_ENV = process.env.NODE_ENV || "development";
 
@@ -91,38 +93,64 @@ function signSession(payload) {
 }
 
 function verifySessionToken(token) {
-  if (!token || !token.includes(".")) return false;
+  if (!token || !token.includes(".")) return null;
   const [body, signature] = token.split(".");
   const expected = crypto
     .createHmac("sha256", SESSION_SECRET)
     .update(body)
     .digest("base64url");
 
-  if (!safeEqual(signature, expected)) return false;
+  if (!safeEqual(signature, expected)) return null;
 
   try {
     const payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
-    return payload?.exp && Date.now() < payload.exp;
+    if (!payload?.exp || Date.now() >= payload.exp) return null;
+    if (!payload?.username || !payload?.role) return null;
+    return payload;
   } catch {
-    return false;
+    return null;
   }
 }
 
-function isAuthenticated(req) {
+function getSession(req) {
   const cookies = parseCookies(req);
   return verifySessionToken(cookies.roac_session);
 }
 
+function isAuthenticated(req) {
+  return !!getSession(req);
+}
+
 function requireAuth(req, res, next) {
-  if (!isAuthenticated(req)) {
+  const session = getSession(req);
+  if (!session) {
     return res.status(401).json({ error: "Sesión no autenticada." });
   }
+  req.session = session;
   next();
 }
 
-function setSessionCookie(res) {
+function requireEditor(req, res, next) {
+  const session = getSession(req);
+  if (!session) {
+    return res.status(401).json({ error: "Sesión no autenticada." });
+  }
+  if (session.role !== "admin") {
+    return res.status(403).json({
+      error: "Usuario de solo lectura. No tiene permisos para modificar información."
+    });
+  }
+  req.session = session;
+  next();
+}
+
+function setSessionCookie(res, user) {
   const sevenDays = 7 * 24 * 60 * 60 * 1000;
-  const token = signSession({ exp: Date.now() + sevenDays });
+  const token = signSession({
+    exp: Date.now() + sevenDays,
+    username: user.username,
+    role: user.role,
+  });
   const secure = NODE_ENV === "production" ? "; Secure" : "";
   res.setHeader(
     "Set-Cookie",
@@ -170,25 +198,58 @@ app.get("/health", async (_req, res) => {
 });
 
 app.get("/api/session", (req, res) => {
-  if (!isAuthenticated(req)) {
+  const session = getSession(req);
+  if (!session) {
     return res.status(401).json({ authenticated: false });
   }
-  res.json({ authenticated: true });
+  res.json({
+    authenticated: true,
+    username: session.username,
+    role: session.role,
+  });
 });
 
 app.post("/api/login", loginLimiter, (req, res) => {
   const username = String(req.body?.username ?? "").trim();
-  const password = req.body?.password ?? "";
+  const password = String(req.body?.password ?? "");
 
-  const userOk = safeEqual(username.toUpperCase(), ADMIN_USERNAME.toUpperCase());
-  const passOk = safeEqual(password, ADMIN_PASSWORD);
+  const users = [
+    {
+      username: ADMIN_USERNAME,
+      password: ADMIN_PASSWORD,
+      role: "admin",
+    },
+    {
+      username: "CMTV",
+      password: CMTV_PASSWORD,
+      role: "viewer",
+    },
+    {
+      username: "Mrodriguez",
+      password: MRODRIGUEZ_PASSWORD,
+      role: "viewer",
+    },
+  ].filter(user => user.password);
 
-  if (!userOk || !passOk) {
+  const normalized = username.toUpperCase();
+  const user = users.find(
+    candidate => candidate.username.toUpperCase() === normalized
+  );
+
+  const valid =
+    !!user &&
+    safeEqual(password, user.password);
+
+  if (!valid) {
     return res.status(401).json({ error: "Usuario o contraseña incorrectos." });
   }
 
-  setSessionCookie(res);
-  res.json({ ok: true, username: ADMIN_USERNAME });
+  setSessionCookie(res, user);
+  res.json({
+    ok: true,
+    username: user.username,
+    role: user.role,
+  });
 });
 
 app.post("/api/logout", (_req, res) => {
@@ -196,7 +257,7 @@ app.post("/api/logout", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/state", requireAuth, async (_req, res) => {
+app.get("/api/state", requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT data, revision, updated_at FROM app_state WHERE id = 1"
@@ -208,6 +269,8 @@ app.get("/api/state", requireAuth, async (_req, res) => {
         state: null,
         revision: 0,
         updatedAt: null,
+        username: req.session.username,
+        role: req.session.role,
       });
     }
 
@@ -217,6 +280,8 @@ app.get("/api/state", requireAuth, async (_req, res) => {
       state: row.data,
       revision: Number(row.revision),
       updatedAt: row.updated_at,
+      username: req.session.username,
+      role: req.session.role,
     });
   } catch (error) {
     console.error("GET /api/state:", error);
@@ -224,7 +289,7 @@ app.get("/api/state", requireAuth, async (_req, res) => {
   }
 });
 
-app.put("/api/state", requireAuth, async (req, res) => {
+app.put("/api/state", requireEditor, async (req, res) => {
   const incomingState = req.body?.state;
   const incomingRevision = Number(req.body?.revision);
 
