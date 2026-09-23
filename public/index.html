@@ -691,7 +691,7 @@ body.read-only-mode .note-readonly{
   </div>
 </div>
 
-<footer>Control Mensual de Alimentación · Render + API Node.js + PostgreSQL.</footer>
+<footer>Control Mensual de Alimentación · Render + API Node.js + PostgreSQL · v36.3</footer>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -6381,6 +6381,41 @@ function downloadFinalReportPDF(){
     );
   }
 }
+</script>
+
+
+<script>
+/* v36.3 - resumen final forzado para Mina y Quilmenco */
+const renderKpisAntesV363=renderKpis;
+
+renderKpis=function(){
+  if(typeof flexMode==="function" && flexMode()){
+    return renderKpisAntesV363();
+  }
+
+  if(typeof splitMode==="function" && splitMode()){
+    const t=activeCompanyId
+      ?totals(activeCompanyId)
+      :{
+        lunch:0,
+        dinner:0,
+        lunchCol:0,
+        dinnerCol:0,
+        totalAmount:0
+      };
+
+    document.getElementById("kpiGrid").innerHTML=
+      kpi("TOTAL ALMUERZOS",t.lunch)+
+      kpi("TOTAL CENAS",t.dinner)+
+      kpi("TOTAL COLACIONES ALMUERZO",t.lunchCol)+
+      kpi("TOTAL COLACIONES CENA",t.dinnerCol)+
+      kpiMoney("TOTAL A PAGAR",t.totalAmount);
+
+    return;
+  }
+
+  return renderKpisAntesV363();
+};
 </script>
 
 </body>
