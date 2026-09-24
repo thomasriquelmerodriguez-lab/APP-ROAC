@@ -589,6 +589,20 @@ body.read-only-mode .note-readonly{
   .dashboard-company-track{grid-column:1 / -1;grid-row:2}
 }
 
+
+.dashboard-header-actions{
+  display:flex;align-items:center;justify-content:flex-end;
+  gap:8px;flex-wrap:wrap
+}
+.dashboard-sync-status{
+  margin:-4px 0 14px;padding:8px 11px;border-radius:8px;
+  background:#f0f6f9;border:1px solid #cfdee6;
+  color:#49616e;font-size:11px;font-weight:800
+}
+@media(max-width:760px){
+  .dashboard-header-actions{justify-content:flex-start}
+}
+
 </style>
 </head>
 <body>
@@ -804,11 +818,26 @@ body.read-only-mode .note-readonly{
         <div>
           <h2>Dashboard</h2>
           <p>
-            Compara consumos por casino, empresa y meses. Esta vista es solo de consulta
-            y no modifica la información registrada.
+            Compara consumos por casino, empresa y meses. Los Servicios Especiales
+            se incorporan al monto total cuando corresponda.
           </p>
         </div>
-        <span class="dashboard-badge">Comparación mensual</span>
+        <div class="dashboard-header-actions">
+          <span class="dashboard-badge">Comparación mensual</span>
+          <button type="button" class="btn-secondary" onclick="refreshRemoteIfChanged(true)">
+            Actualizar ahora
+          </button>
+          <button type="button" class="btn-warning" onclick="printDashboardReport()">
+            Imprimir / guardar PDF
+          </button>
+          <button type="button" class="btn-primary" onclick="downloadDashboardReport()">
+            Descargar reporte
+          </button>
+        </div>
+      </div>
+
+      <div id="dashboardSyncStatus" class="dashboard-sync-status">
+        Sincronización automática cada 30 segundos.
       </div>
 
       <div class="dashboard-filters">
@@ -832,16 +861,6 @@ body.read-only-mode .note-readonly{
           <select id="dashboardChartType">
             <option value="bar">Barras</option>
             <option value="line">Líneas</option>
-          </select>
-        </div>
-
-        <div class="dashboard-filter">
-          <label for="dashboardCompanyMetric">Gráfico por empresa</label>
-          <select id="dashboardCompanyMetric">
-            <option value="lunch">Total almuerzos</option>
-            <option value="dinner">Total cenas</option>
-            <option value="lunchCol">Total colaciones almuerzo</option>
-            <option value="dinnerCol">Total colaciones cena</option>
           </select>
         </div>
       </div>
@@ -891,18 +910,10 @@ body.read-only-mode .note-readonly{
       <div class="dashboard-chart-card">
         <div class="dashboard-chart-head">
           <div>
-            <h3>Comparación por empresa</h3>
-            <p id="dashboardCompanySubtitle"></p>
-          </div>
-        </div>
-        <div id="dashboardCompanyChart"></div>
-      </div>
-
-      <div class="dashboard-chart-card">
-        <div class="dashboard-chart-head">
-          <div>
             <h3>Detalle mensual</h3>
-            <p>Totales calculados con los mismos datos utilizados por la aplicación.</p>
+            <p>
+              Cada fila corresponde al total del mes según los filtros aplicados.
+            </p>
           </div>
         </div>
         <div class="table-wrap">
@@ -914,6 +925,7 @@ body.read-only-mode .note-readonly{
                 <th>Total cenas</th>
                 <th>Colaciones almuerzo</th>
                 <th>Colaciones cena</th>
+                <th>Total servicios</th>
                 <th>Total a pagar</th>
               </tr>
             </thead>
@@ -6655,7 +6667,7 @@ function downloadFinalReportPDF(){
 
 
 <script>
-/* Dashboard v36.1: consulta y comparación multi-mes */
+/* Dashboard v36.1 - actualización: multi-mes, impresión y Servicios Especiales */
 const DASHBOARD_METRICS=[
   {key:"lunch",label:"Total almuerzos",color:"#20639b"},
   {key:"dinner",label:"Total cenas",color:"#2f7d4a"},
@@ -6666,7 +6678,7 @@ const DASHBOARD_METRICS=[
 let dashboardInitialized=false;
 
 function dashboardCasinoKeys(){
-  return ["salamanca","mina","quilmenco"].filter(
+  return ["salamanca","mina","quilmenco","especiales"].filter(
     key=>state?.casinos?.[key]
   );
 }
@@ -6701,10 +6713,58 @@ function dashboardHasManual(entry,field){
   return Object.prototype.hasOwnProperty.call(entry||{},field);
 }
 
+function dashboardSpecialPeriod(current,companyId,year,month){
+  const period=`${year}-${String(month).padStart(2,"0")}`;
+  const days=current.entries?.[period]?.[companyId]||{};
+  const quantities=[0,0,0,0,0,0];
+
+  Object.values(days).forEach(entry=>{
+    if(!entry||typeof entry!=="object")return;
+    for(let i=0;i<6;i++){
+      quantities[i]+=num(entry[`s${i+1}`]);
+    }
+  });
+
+  const prices=Array.isArray(current.priceByPeriod?.[period])
+    ?current.priceByPeriod[period]
+    :Array.isArray(current.servicePrices)
+      ?current.servicePrices
+      :[0,0,0,0,0,0];
+
+  const totalAmount=quantities.reduce(
+    (sum,quantity,index)=>
+      sum+quantity*(Number(prices[index])||0),
+    0
+  );
+
+  return {
+    lunch:0,
+    dinner:0,
+    lunchCol:0,
+    dinnerCol:0,
+    mealServices:0,
+    specialServices:quantities.reduce((a,b)=>a+b,0),
+    totalAmount
+  };
+}
+
 function dashboardCompanyPeriod(casinoKey,companyId,year,month){
   const current=state.casinos?.[casinoKey];
+
   if(!current){
-    return {lunch:0,dinner:0,lunchCol:0,dinnerCol:0,totalAmount:0};
+    return {
+      lunch:0,dinner:0,lunchCol:0,dinnerCol:0,
+      mealServices:0,specialServices:0,totalAmount:0
+    };
+  }
+
+  if(current.flexible||casinoKey==="especiales"){
+    return dashboardSpecialPeriod(
+      current,
+      companyId,
+      year,
+      month
+    );
   }
 
   const period=`${year}-${String(month).padStart(2,"0")}`;
@@ -6712,7 +6772,7 @@ function dashboardCompanyPeriod(casinoKey,companyId,year,month){
   let lunch=0,dinner=0,lunchCol=0,dinnerCol=0;
 
   Object.values(days).forEach(entry=>{
-    if(!entry || typeof entry!=="object")return;
+    if(!entry||typeof entry!=="object")return;
 
     let dayLunch=0;
     let dayDinner=0;
@@ -6742,6 +6802,8 @@ function dashboardCompanyPeriod(casinoKey,companyId,year,month){
     dinner,
     lunchCol,
     dinnerCol,
+    mealServices:lunch+dinner+lunchCol+dinnerCol,
+    specialServices:0,
     totalAmount:
       (lunch+dinner)*MEAL_PRICE+
       (lunchCol+dinnerCol)*COLATION_PRICE
@@ -6750,6 +6812,7 @@ function dashboardCompanyPeriod(casinoKey,companyId,year,month){
 
 function dashboardSelectedCasinoKeys(){
   const value=document.getElementById("dashboardCasino")?.value||"ALL";
+
   return value==="ALL"
     ?dashboardCasinoKeys()
     :dashboardCasinoKeys().filter(key=>key===value);
@@ -6757,8 +6820,10 @@ function dashboardSelectedCasinoKeys(){
 
 function dashboardAllCompanyRefs(){
   const refs=[];
+
   dashboardSelectedCasinoKeys().forEach(casinoKey=>{
     const current=state.casinos[casinoKey];
+
     (current.companies||[]).forEach(company=>{
       refs.push({
         casinoKey,
@@ -6769,12 +6834,14 @@ function dashboardAllCompanyRefs(){
       });
     });
   });
+
   return refs;
 }
 
 function dashboardSelectedCompanyRefs(){
   const all=dashboardAllCompanyRefs();
   const selected=document.getElementById("dashboardCompany")?.value||"ALL";
+
   return selected==="ALL"
     ?all
     :all.filter(ref=>ref.value===selected);
@@ -6788,6 +6855,9 @@ function dashboardAggregateMonth(year,month,refs){
     dinner:0,
     lunchCol:0,
     dinnerCol:0,
+    mealServices:0,
+    specialServices:0,
+    totalServices:0,
     totalAmount:0
   };
 
@@ -6798,12 +6868,18 @@ function dashboardAggregateMonth(year,month,refs){
       year,
       month
     );
+
     total.lunch+=value.lunch;
     total.dinner+=value.dinner;
     total.lunchCol+=value.lunchCol;
     total.dinnerCol+=value.dinnerCol;
+    total.mealServices+=value.mealServices;
+    total.specialServices+=value.specialServices;
     total.totalAmount+=value.totalAmount;
   });
+
+  total.totalServices=
+    total.mealServices+total.specialServices;
 
   return total;
 }
@@ -6813,17 +6889,18 @@ function dashboardPopulateCasino(){
   if(!select)return;
 
   const previous=select.value||"ALL";
+
   select.innerHTML=
-    `<option value="ALL">Todos los casinos</option>`+
+    `<option value="ALL">Todos los casinos y servicios</option>`+
     dashboardCasinoKeys().map(key=>
       `<option value="${escapeAttr(key)}">${
         escapeHtml(state.casinos[key].name)
       }</option>`
     ).join("");
 
-  select.value=[...select.options].some(o=>o.value===previous)
-    ?previous
-    :"ALL";
+  select.value=[...select.options].some(
+    option=>option.value===previous
+  )?previous:"ALL";
 }
 
 function dashboardPopulateCompanies(){
@@ -6839,14 +6916,15 @@ function dashboardPopulateCompanies(){
       const label=dashboardSelectedCasinoKeys().length>1
         ?`${ref.casinoName} · ${ref.companyName}`
         :ref.companyName;
+
       return `<option value="${escapeAttr(ref.value)}">${
         escapeHtml(label)
       }</option>`;
     }).join("");
 
-  select.value=[...select.options].some(o=>o.value===previous)
-    ?previous
-    :"ALL";
+  select.value=[...select.options].some(
+    option=>option.value===previous
+  )?previous:"ALL";
 }
 
 function dashboardPopulateYears(){
@@ -6870,6 +6948,7 @@ function dashboardPopulateMonths(){
   if(!box)return;
 
   const alreadyChecked=dashboardMonthSelections();
+
   const defaultMonths=alreadyChecked.length
     ?alreadyChecked
     :[
@@ -6880,6 +6959,7 @@ function dashboardPopulateMonths(){
   box.innerHTML=months.map((name,index)=>{
     const value=index+1;
     const checked=defaultMonths.includes(value)?"checked":"";
+
     return `<label class="dashboard-check">
       <input type="checkbox" value="${value}" ${checked}>
       <span>${escapeHtml(name)}</span>
@@ -6892,6 +6972,7 @@ function dashboardPopulateMetrics(){
   if(!box)return;
 
   const selected=dashboardMetricSelections();
+
   const defaultsSelected=selected.length
     ?selected
     :DASHBOARD_METRICS.map(metric=>metric.key);
@@ -6933,9 +7014,6 @@ function dashboardInit(){
   document.getElementById("dashboardChartType")
     ?.addEventListener("change",renderDashboard);
 
-  document.getElementById("dashboardCompanyMetric")
-    ?.addEventListener("change",renderDashboard);
-
   document.getElementById("dashboardMonths")
     ?.addEventListener("change",renderDashboard);
 
@@ -6947,6 +7025,7 @@ function dashboardInit(){
       document.querySelectorAll(
         '#dashboardMonths input[type="checkbox"]'
       ).forEach(input=>input.checked=true);
+
       renderDashboard();
     });
 
@@ -6955,6 +7034,7 @@ function dashboardInit(){
       document.querySelectorAll(
         '#dashboardMonths input[type="checkbox"]'
       ).forEach(input=>input.checked=false);
+
       renderDashboard();
     });
 }
@@ -6964,30 +7044,37 @@ function dashboardSvgEscape(value){
 }
 
 function dashboardMonthlySvg(data,metrics,type){
-  if(!data.length || !metrics.length)return "";
+  if(!data.length||!metrics.length)return "";
 
   const width=Math.max(820,data.length*105);
   const height=390;
   const left=74,right=24,top=30,bottom=64;
   const plotW=width-left-right;
   const plotH=height-top-bottom;
+
   const maxValue=Math.max(
     1,
-    ...data.flatMap(row=>metrics.map(metric=>Number(row[metric.key])||0))
+    ...data.flatMap(
+      row=>metrics.map(metric=>Number(row[metric.key])||0)
+    )
   );
+
   const tickCount=5;
   const y=value=>top+plotH-(value/maxValue)*plotH;
   const xStep=plotW/data.length;
   const monthX=index=>left+xStep*(index+.5);
 
   const grid=[];
+
   for(let i=0;i<=tickCount;i++){
     const value=maxValue*(i/tickCount);
     const yy=y(value);
+
     grid.push(
       `<line x1="${left}" y1="${yy}" x2="${width-right}" y2="${yy}" `+
       `stroke="#dbe5ea" stroke-width="1"/>`
     );
+
     grid.push(
       `<text x="${left-10}" y="${yy+4}" text-anchor="end" `+
       `font-size="11" fill="#617482">${dashboardSvgEscape(fmt(value))}</text>`
@@ -7015,6 +7102,7 @@ function dashboardMonthlySvg(data,metrics,type){
 
       data.forEach((row,index)=>{
         const value=row[metric.key]||0;
+
         marks+=
           `<circle cx="${monthX(index)}" cy="${y(value)}" r="5" `+
           `fill="${metric.color}" stroke="#fff" stroke-width="2">`+
@@ -7026,6 +7114,7 @@ function dashboardMonthlySvg(data,metrics,type){
   }else{
     const groupWidth=Math.min(xStep*.76,78);
     const gap=3;
+
     const barWidth=Math.max(
       5,
       (groupWidth-gap*(metrics.length-1))/metrics.length
@@ -7033,14 +7122,16 @@ function dashboardMonthlySvg(data,metrics,type){
 
     data.forEach((row,index)=>{
       const start=monthX(index)-groupWidth/2;
+
       metrics.forEach((metric,metricIndex)=>{
         const value=row[metric.key]||0;
         const xx=start+metricIndex*(barWidth+gap);
         const yy=y(value);
         const hh=top+plotH-yy;
+
         marks+=
-          `<rect x="${xx}" y="${yy}" width="${barWidth}" height="${Math.max(hh,1)}" `+
-          `rx="3" fill="${metric.color}">`+
+          `<rect x="${xx}" y="${yy}" width="${barWidth}" `+
+          `height="${Math.max(hh,1)}" rx="3" fill="${metric.color}">`+
           `<title>${dashboardSvgEscape(metric.label)} · ${
             dashboardSvgEscape(row.label)
           }: ${dashboardSvgEscape(fmt(value))}</title></rect>`;
@@ -7063,113 +7154,32 @@ function dashboardMonthlySvg(data,metrics,type){
       aria-label="Comparación mensual"
     >
       ${grid.join("")}
-      <line x1="${left}" y1="${top+plotH}" x2="${width-right}" y2="${top+plotH}"
-        stroke="#9eb1bc" stroke-width="1.5"/>
+      <line
+        x1="${left}"
+        y1="${top+plotH}"
+        x2="${width-right}"
+        y2="${top+plotH}"
+        stroke="#9eb1bc"
+        stroke-width="1.5"
+      />
       ${marks}
       ${xLabels}
     </svg>`;
 }
 
-function dashboardCompanyBars(companyRows,metricKey){
-  const metric=DASHBOARD_METRICS.find(item=>item.key===metricKey)
-    ||DASHBOARD_METRICS[0];
-
-  if(!companyRows.length){
-    return `<div class="dashboard-message">No existen empresas para los filtros seleccionados.</div>`;
-  }
-
-  const sorted=[...companyRows]
-    .sort((a,b)=>(b[metricKey]||0)-(a[metricKey]||0));
-  const max=Math.max(1,...sorted.map(row=>row[metricKey]||0));
-
-  return `
-    <div class="dashboard-legend">
-      <span><i style="background:${metric.color}"></i>${
-        escapeHtml(metric.label)
-      }</span>
-    </div>
-    <div class="dashboard-company-bars">
-      ${sorted.map(row=>{
-        const value=row[metricKey]||0;
-        const pct=Math.max(0,Math.min(100,(value/max)*100));
-        return `<div class="dashboard-company-row">
-          <div class="dashboard-company-label" title="${
-            escapeAttr(row.label)
-          }">${escapeHtml(row.label)}</div>
-          <div class="dashboard-company-track">
-            <div
-              class="dashboard-company-fill"
-              style="width:${pct}%;background:${metric.color}"
-            ></div>
-          </div>
-          <div class="dashboard-company-value">${fmt(value)}</div>
-        </div>`;
-      }).join("")}
-    </div>`;
-}
-
-function dashboardCompanyRows(year,selectedMonths,refs){
-  return refs.map(ref=>{
-    const row={
-      label:dashboardSelectedCasinoKeys().length>1
-        ?`${ref.casinoName} · ${ref.companyName}`
-        :ref.companyName,
-      lunch:0,
-      dinner:0,
-      lunchCol:0,
-      dinnerCol:0,
-      totalAmount:0
-    };
-
-    selectedMonths.forEach(month=>{
-      const value=dashboardCompanyPeriod(
-        ref.casinoKey,
-        ref.companyId,
-        year,
-        month
-      );
-      row.lunch+=value.lunch;
-      row.dinner+=value.dinner;
-      row.lunchCol+=value.lunchCol;
-      row.dinnerCol+=value.dinnerCol;
-      row.totalAmount+=value.totalAmount;
-    });
-
-    return row;
-  });
-}
-
-function renderDashboard(){
-  dashboardInit();
-
-  const message=document.getElementById("dashboardMessage");
+function dashboardCurrentData(){
   const selectedMonths=dashboardMonthSelections();
   const metricKeys=dashboardMetricSelections();
+
   const metrics=DASHBOARD_METRICS.filter(
     metric=>metricKeys.includes(metric.key)
   );
+
   const year=Number(
     document.getElementById("dashboardYear")?.value
   )||activeYear;
+
   const refs=dashboardSelectedCompanyRefs();
-
-  if(!selectedMonths.length){
-    message.style.display="block";
-    message.textContent="Selecciona al menos un mes para generar el Dashboard.";
-    document.getElementById("dashboardKpis").innerHTML="";
-    document.getElementById("dashboardMonthlyChart").innerHTML="";
-    document.getElementById("dashboardCompanyChart").innerHTML="";
-    document.getElementById("dashboardTableBody").innerHTML="";
-    return;
-  }
-
-  if(!metrics.length){
-    message.style.display="block";
-    message.textContent="Selecciona al menos un indicador para el gráfico mensual.";
-  }else{
-    message.style.display="none";
-    message.textContent="";
-  }
 
   const monthly=selectedMonths.map(
     month=>dashboardAggregateMonth(year,month,refs)
@@ -7180,18 +7190,79 @@ function renderDashboard(){
     acc.dinner+=row.dinner;
     acc.lunchCol+=row.lunchCol;
     acc.dinnerCol+=row.dinnerCol;
+    acc.mealServices+=row.mealServices;
+    acc.specialServices+=row.specialServices;
+    acc.totalServices+=row.totalServices;
     acc.totalAmount+=row.totalAmount;
     return acc;
   },{
-    lunch:0,dinner:0,lunchCol:0,dinnerCol:0,totalAmount:0
+    lunch:0,
+    dinner:0,
+    lunchCol:0,
+    dinnerCol:0,
+    mealServices:0,
+    specialServices:0,
+    totalServices:0,
+    totalAmount:0
   });
 
+  const casinoSelect=document.getElementById("dashboardCasino");
+  const companySelect=document.getElementById("dashboardCompany");
+
+  return {
+    selectedMonths,
+    metrics,
+    year,
+    monthly,
+    grand,
+    casinoText:
+      casinoSelect?.options[casinoSelect.selectedIndex]?.text||"",
+    companyText:
+      companySelect?.options[companySelect.selectedIndex]?.text||"",
+    monthText:
+      selectedMonths.map(month=>months[month-1]).join(", "),
+    chartType:
+      document.getElementById("dashboardChartType")?.value||"bar"
+  };
+}
+
+function renderDashboard(){
+  dashboardInit();
+
+  const message=document.getElementById("dashboardMessage");
+  const data=dashboardCurrentData();
+
+  if(!data.selectedMonths.length){
+    message.style.display="block";
+    message.textContent=
+      "Selecciona al menos un mes para generar el Dashboard.";
+
+    document.getElementById("dashboardKpis").innerHTML="";
+    document.getElementById("dashboardMonthlyChart").innerHTML="";
+    document.getElementById("dashboardTableBody").innerHTML="";
+    return;
+  }
+
+  if(!data.metrics.length){
+    message.style.display="block";
+    message.textContent=
+      "Selecciona al menos un indicador para el gráfico mensual.";
+  }else{
+    const includesSpecial=
+      dashboardSelectedCasinoKeys().includes("especiales");
+
+    message.style.display=includesSpecial?"block":"none";
+    message.textContent=includesSpecial
+      ?"Servicios Especiales se incorporan al Total a pagar y al Total servicios. No se contabilizan como almuerzos, cenas o colaciones."
+      :"";
+  }
+
   document.getElementById("dashboardKpis").innerHTML=[
-    ["Total almuerzos",fmt(grand.lunch)],
-    ["Total cenas",fmt(grand.dinner)],
-    ["Colaciones almuerzo",fmt(grand.lunchCol)],
-    ["Colaciones cena",fmt(grand.dinnerCol)],
-    ["Total a pagar",money(grand.totalAmount)]
+    ["Total almuerzos",fmt(data.grand.lunch)],
+    ["Total cenas",fmt(data.grand.dinner)],
+    ["Colaciones almuerzo",fmt(data.grand.lunchCol)],
+    ["Colaciones cena",fmt(data.grand.dinnerCol)],
+    ["Total a pagar",money(data.grand.totalAmount)]
   ].map(([label,value])=>`
     <div class="dashboard-kpi">
       <span>${escapeHtml(label)}</span>
@@ -7199,62 +7270,252 @@ function renderDashboard(){
     </div>
   `).join("");
 
-  const casinoSelect=document.getElementById("dashboardCasino");
-  const companySelect=document.getElementById("dashboardCompany");
-  const casinoText=casinoSelect.options[casinoSelect.selectedIndex]?.text||"";
-  const companyText=companySelect.options[companySelect.selectedIndex]?.text||"";
-  const monthText=selectedMonths.map(month=>months[month-1]).join(", ");
-
   document.getElementById("dashboardMonthlySubtitle").textContent=
-    `${casinoText} · ${companyText} · ${monthText} ${year}`;
+    `${data.casinoText} · ${data.companyText} · ${
+      data.monthText
+    } ${data.year}`;
 
   document.getElementById("dashboardMonthlyChart").innerHTML=
-    metrics.length
+    data.metrics.length
       ?dashboardMonthlySvg(
-          monthly,
-          metrics,
-          document.getElementById("dashboardChartType")?.value||"bar"
+          data.monthly,
+          data.metrics,
+          data.chartType
         )
       :"";
 
-  const companyRows=dashboardCompanyRows(year,selectedMonths,refs);
-  const companyMetric=document.getElementById("dashboardCompanyMetric")?.value||"lunch";
-  const metricLabel=DASHBOARD_METRICS.find(
-    metric=>metric.key===companyMetric
-  )?.label||"Total almuerzos";
-
-  document.getElementById("dashboardCompanySubtitle").textContent=
-    `${metricLabel} acumulado · ${monthText} ${year}`;
-
-  document.getElementById("dashboardCompanyChart").innerHTML=
-    dashboardCompanyBars(companyRows,companyMetric);
-
   const body=document.getElementById("dashboardTableBody");
+
   body.innerHTML=
-    monthly.map(row=>`
+    data.monthly.map(row=>`
       <tr>
-        <td>${escapeHtml(row.label)} ${year}</td>
+        <td>TOTAL ${escapeHtml(row.label.toUpperCase())} ${data.year}</td>
         <td>${fmt(row.lunch)}</td>
         <td>${fmt(row.dinner)}</td>
         <td>${fmt(row.lunchCol)}</td>
         <td>${fmt(row.dinnerCol)}</td>
+        <td>${fmt(row.totalServices)}</td>
         <td>${money(row.totalAmount)}</td>
       </tr>
     `).join("")+
     `<tr class="dashboard-total-row">
       <td>TOTAL SELECCIÓN</td>
-      <td>${fmt(grand.lunch)}</td>
-      <td>${fmt(grand.dinner)}</td>
-      <td>${fmt(grand.lunchCol)}</td>
-      <td>${fmt(grand.dinnerCol)}</td>
-      <td>${money(grand.totalAmount)}</td>
+      <td>${fmt(data.grand.lunch)}</td>
+      <td>${fmt(data.grand.dinner)}</td>
+      <td>${fmt(data.grand.lunchCol)}</td>
+      <td>${fmt(data.grand.dinnerCol)}</td>
+      <td>${fmt(data.grand.totalServices)}</td>
+      <td>${money(data.grand.totalAmount)}</td>
     </tr>`;
 }
 
-/* Se integra a la navegación actual sin modificar las vistas existentes. */
+function dashboardReportDocument(){
+  const data=dashboardCurrentData();
+
+  if(!data.selectedMonths.length){
+    alert("Selecciona al menos un mes.");
+    return null;
+  }
+
+  const chart=document.getElementById("dashboardMonthlyChart")?.innerHTML||"";
+  const kpis=document.getElementById("dashboardKpis")?.innerHTML||"";
+  const table=document.querySelector("#dashboardView .dashboard-table")?.outerHTML||"";
+
+  return `<!DOCTYPE html>
+  <html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <title>Dashboard ROAC</title>
+    <style>
+      *{box-sizing:border-box}
+      body{
+        font-family:Arial,Helvetica,sans-serif;
+        color:#243746;
+        margin:24px;
+      }
+      h1{margin:0;color:#173f5f}
+      .sub{margin:6px 0 18px;color:#60727e;font-size:13px}
+      .filter-box{
+        padding:10px 12px;
+        border:1px solid #c8d6df;
+        border-radius:8px;
+        margin-bottom:14px;
+        background:#f6f9fb;
+        font-size:12px;
+      }
+      .dashboard-kpi-grid{
+        display:grid;
+        grid-template-columns:repeat(5,1fr);
+        gap:8px;
+        margin:14px 0;
+      }
+      .dashboard-kpi{
+        border:1px solid #bdd1dd;
+        border-radius:8px;
+        overflow:hidden;
+      }
+      .dashboard-kpi span{
+        display:block;
+        padding:7px;
+        background:#216b9f;
+        color:#fff;
+        text-align:center;
+        font-size:9px;
+        font-weight:bold;
+      }
+      .dashboard-kpi strong{
+        display:block;
+        padding:12px 6px;
+        text-align:center;
+        font-size:17px;
+        color:#123f61;
+      }
+      .dashboard-legend{
+        display:flex;
+        gap:12px;
+        flex-wrap:wrap;
+        font-size:10px;
+        margin:8px 0;
+      }
+      .dashboard-legend span{display:inline-flex;gap:5px;align-items:center}
+      .dashboard-legend i{display:inline-block;width:9px;height:9px;border-radius:2px}
+      .dashboard-svg{width:100%;height:auto;max-height:380px}
+      .dashboard-chart-scroll{overflow:visible}
+      table{
+        width:100%;
+        border-collapse:collapse;
+        margin-top:16px;
+        font-size:10px;
+      }
+      th,td{
+        border:1px solid #b9cbd5;
+        padding:6px;
+        text-align:right;
+      }
+      th{
+        background:#20639b;
+        color:#fff;
+      }
+      th:first-child,td:first-child{text-align:left}
+      .dashboard-total-row td{
+        background:#eaf4fb;
+        font-weight:bold;
+        color:#173f5f;
+      }
+      .special-note{
+        margin-top:12px;
+        padding:8px;
+        background:#fff7df;
+        border:1px solid #ead18c;
+        border-radius:7px;
+        font-size:10px;
+      }
+      @page{
+        size:A4 landscape;
+        margin:10mm;
+      }
+      @media print{
+        body{margin:0}
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Dashboard - ROAC Servicios Integrales</h1>
+    <div class="sub">Reporte comparativo · ${escapeHtml(data.year)}</div>
+
+    <div class="filter-box">
+      <b>Casino:</b> ${escapeHtml(data.casinoText)} ·
+      <b>Empresa:</b> ${escapeHtml(data.companyText)} ·
+      <b>Meses:</b> ${escapeHtml(data.monthText)}
+    </div>
+
+    <div class="dashboard-kpi-grid">${kpis}</div>
+
+    <h2>Comparación por mes</h2>
+    <div class="dashboard-chart-scroll">${chart}</div>
+
+    <h2>Detalle mensual</h2>
+    ${table}
+
+    ${
+      dashboardSelectedCasinoKeys().includes("especiales")
+        ?`<div class="special-note">
+          Servicios Especiales se incorporan al monto total y al total de servicios,
+          pero no se clasifican como almuerzos, cenas o colaciones.
+        </div>`
+        :""
+    }
+  </body>
+  </html>`;
+}
+
+function printDashboardReport(){
+  const report=dashboardReportDocument();
+  if(!report)return;
+
+  const iframe=document.createElement("iframe");
+  iframe.style.position="fixed";
+  iframe.style.right="0";
+  iframe.style.bottom="0";
+  iframe.style.width="0";
+  iframe.style.height="0";
+  iframe.style.border="0";
+  document.body.appendChild(iframe);
+
+  const doc=iframe.contentWindow.document;
+  doc.open();
+  doc.write(report);
+  doc.close();
+
+  let printed=false;
+
+  const execute=()=>{
+    if(printed||!iframe.isConnected)return;
+    printed=true;
+
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+
+    setTimeout(()=>iframe.remove(),1500);
+  };
+
+  iframe.onload=execute;
+  setTimeout(execute,700);
+}
+
+function downloadDashboardReport(){
+  const report=dashboardReportDocument();
+  if(!report)return;
+
+  const data=dashboardCurrentData();
+
+  const blob=new Blob(
+    ["\ufeff"+report],
+    {type:"text/html;charset=utf-8"}
+  );
+
+  const link=document.createElement("a");
+  const url=URL.createObjectURL(blob);
+
+  link.href=url;
+  link.download=
+    `dashboard_${data.year}_${String(
+      data.selectedMonths[0]||1
+    ).padStart(2,"0")}_a_${String(
+      data.selectedMonths[data.selectedMonths.length-1]||1
+    ).padStart(2,"0")}.html`;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
 const showViewAntesDashboard=showView;
 showView=function(id){
   showViewAntesDashboard(id);
+
   if(id==="dashboardView"){
     renderDashboard();
   }
@@ -7263,6 +7524,7 @@ showView=function(id){
 const renderAllAntesDashboard=renderAll;
 renderAll=function(){
   const result=renderAllAntesDashboard();
+
   if(
     document.getElementById("dashboardView")
       ?.classList.contains("active")
@@ -7272,8 +7534,161 @@ renderAll=function(){
     dashboardPopulateCompanies();
     renderDashboard();
   }
+
   return result;
 };
+</script>
+
+
+<script>
+/* Sincronización automática de cambios realizados por otros usuarios */
+let remoteAutoRefreshBusy=false;
+let lastLocalInteractionAt=0;
+
+document.addEventListener("input",()=>{
+  lastLocalInteractionAt=Date.now();
+},true);
+
+document.addEventListener("change",()=>{
+  lastLocalInteractionAt=Date.now();
+},true);
+
+function updateDashboardSyncStatus(text){
+  const el=document.getElementById("dashboardSyncStatus");
+  if(el)el.textContent=text;
+}
+
+async function refreshRemoteIfChanged(manual=false){
+  if(!remoteReady||remoteAutoRefreshBusy)return false;
+
+  if(
+    currentRole!=="viewer" &&
+    !manual &&
+    Date.now()-lastLocalInteractionAt<4000
+  ){
+    return false;
+  }
+
+  if(saveInFlight)return false;
+
+  remoteAutoRefreshBusy=true;
+
+  try{
+    if(manual){
+      updateDashboardSyncStatus("Buscando cambios en el servidor…");
+    }
+
+    const response=await fetch(API_STATE_URL,{
+      method:"GET",
+      credentials:"same-origin",
+      headers:{
+        "Accept":"application/json",
+        "Cache-Control":"no-cache"
+      },
+      cache:"no-store"
+    });
+
+    if(response.status===401){
+      remoteReady=false;
+      showLoginOverlay("La sesión expiró. Ingresa nuevamente.");
+      return false;
+    }
+
+    if(!response.ok){
+      if(manual){
+        updateDashboardSyncStatus(
+          "No fue posible consultar el servidor."
+        );
+      }
+      return false;
+    }
+
+    const payload=await response.json();
+    const serverRevision=Number(payload.revision)||0;
+
+    currentUser=payload.username||currentUser||"";
+    currentRole=payload.role||currentRole||"";
+
+    if(
+      payload.exists &&
+      payload.state?.casinos &&
+      serverRevision>remoteRevision
+    ){
+      const previousCasino=activeCasino;
+      const previousCompany=activeCompanyId;
+
+      state=payload.state;
+      remoteRevision=serverRevision;
+      remoteUpdatedAt=payload.updatedAt||new Date().toISOString();
+
+      normalizeRemoteState();
+
+      if(state.casinos?.[previousCasino]){
+        activeCasino=previousCasino;
+      }else{
+        activeCasino=Object.keys(state.casinos||{})[0]||"salamanca";
+      }
+
+      activeCompanyId=previousCompany;
+      ensureSelected();
+
+      renderAll();
+      applyReadOnlyMode();
+
+      if(
+        document.getElementById("dashboardView")
+          ?.classList.contains("active")
+      ){
+        renderDashboard();
+      }
+
+      const time=new Date(remoteUpdatedAt).toLocaleTimeString(
+        "es-CL",
+        {hour:"2-digit",minute:"2-digit"}
+      );
+
+      updateDashboardSyncStatus(
+        `Información actualizada desde el servidor · ${time}`
+      );
+
+      showToast("Se cargaron cambios realizados por otro usuario");
+      return true;
+    }
+
+    const nowText=new Date().toLocaleTimeString(
+      "es-CL",
+      {hour:"2-digit",minute:"2-digit"}
+    );
+
+    updateDashboardSyncStatus(
+      `Sin cambios nuevos · última revisión ${nowText} · actualización automática cada 30 segundos`
+    );
+
+    return false;
+  }catch(error){
+    console.error("Sincronización automática:",error);
+
+    if(manual){
+      updateDashboardSyncStatus(
+        "Error al consultar cambios del servidor."
+      );
+    }
+
+    return false;
+  }finally{
+    remoteAutoRefreshBusy=false;
+  }
+}
+
+setInterval(()=>{
+  refreshRemoteIfChanged(false);
+},30000);
+
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden){
+    refreshRemoteIfChanged(false);
+  }
+});
 </script>
 
 </body>
